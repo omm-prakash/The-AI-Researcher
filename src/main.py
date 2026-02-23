@@ -39,16 +39,30 @@ def chat_endpoint():
     if not thread_id or not message_text:
         return jsonify({"error": "Missing thread_id or message in request body"}), 400
 
-    # Parse provided files
-    attachment_context = ""
-    for file in files:
-        if file.filename.lower().endswith('.pdf'):
-            file_bytes = file.read()
-            parsed_text = parse_pdf(file_bytes)
-            attachment_context += f"\n\n--- Content of {file.filename} ---\n{parsed_text}"
+    from werkzeug.utils import secure_filename
+    
+    attachment_type = "none"
+    attachment_path = None
+    
+    if files:
+        latest_file = files[-1]
+        if latest_file.filename:
+            # Create session storage directory
+            storage_dir = os.path.join("storage", thread_id)
+            os.makedirs(storage_dir, exist_ok=True)
             
-    if attachment_context:
-        message_text += f"\n\n[USER ATTACHMENTS]:\n{attachment_context}"
+            filename = secure_filename(latest_file.filename)
+            file_path = os.path.join(storage_dir, filename)
+            latest_file.save(file_path)
+            
+            attachment_path = file_path
+            ext = filename.lower().split('.')[-1]
+            if ext == 'pdf':
+                attachment_type = "pdf"
+            elif ext in ['jpg', 'jpeg', 'png', 'gif', 'webp']:
+                attachment_type = "image"
+            elif ext in ['mp3', 'wav', 'ogg', 'm4a']:
+                attachment_type = "audio"
     
     builder = build_graph()
     
@@ -65,7 +79,11 @@ def chat_endpoint():
         
         # Use sync invoke as the checkpointer is synchronous
         final_state = graph.invoke(
-            {"messages": [input_message]},
+            {
+                "messages": [input_message],
+                "attachment_type": attachment_type,
+                "attachment_path": attachment_path
+            },
             config=config
         )
         print('final state', type(final_state), final_state.keys())
@@ -77,7 +95,19 @@ def chat_endpoint():
         else:
             final_response = "No response generated."
             
+        graph.update_state(
+            config=config,
+            state={
+                "error_response": "",
+                "attachment_type": "none",
+                "attachment_path": "",
+                "next_agent": ""
+            }
+        )
+
         return jsonify({"response": final_response, "thread_id": thread_id})
+
+
 
     # except Exception as e:
     #     return jsonify({"error": str(e)}), 500

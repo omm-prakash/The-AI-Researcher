@@ -1,4 +1,4 @@
-from typing import Annotated, Sequence, TypedDict
+from typing import Annotated, Sequence, TypedDict, Literal, Optional
 from langchain_core.messages import BaseMessage
 from langgraph.graph.message import add_messages
 
@@ -12,3 +12,6 @@ class AgentState(TypedDict, total=False):
     messages: Annotated[Sequence[BaseMessage], add_messages]
     next_agent: str
     error_response: str
+    attachment_type: Literal["pdf", "image", "audio", "none"]
+    attachment_path: Optional[str]
+    

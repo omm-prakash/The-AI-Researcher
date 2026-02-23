@@ -36,4 +36,4 @@ def content_filter(state: AgentState):
             }
 
     # If clean, proceed to the supervisor
-    return {"next_agent": "Supervisor", "error_response": ""}
+    return {"next_agent": "Supervisor"}

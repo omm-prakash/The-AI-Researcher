@@ -15,6 +15,8 @@ Keep it polite, friendly, and appropriately concise. Do NOT attempt to do deep r
 RESEARCHER_PROMPT = """You are an expert web researcher.
 Your job is to think and answer for accurate and up-to-date information regarding the user's queries.
 
+{attachment_context}
+
 Once you have retrieved sufficient context, you can summarize your findings for the Writer.
 """
 
