@@ -21,7 +21,7 @@ def get_llm(messages=None):
     api_key = os.getenv("GROQ_API_KEY", "your_groq_api_key")
     
     # We will use two different models hosted by Groq natively
-    model_name = "openai/gpt-oss-20b" # default for smaller requirements
+    model_name = "openai/gpt-oss-120b" # default for smaller requirements
     
     if messages:
         # Find the latest human message to gauge complexity
@@ -43,14 +43,15 @@ from pydantic import BaseModel, Field
 from typing import Literal
 
 class Router(BaseModel):
-    next_agent: Literal["Researcher", "Writer", "FINISH"] = Field(
+    next_agent: Literal["Researcher", "Casual", "FINISH"] = Field(
         description="The next agent to route to depending on the task."
     )
 
 from src.utils.context import trim_history
 
 def supervisor_node(state: AgentState):
-    members = ["Researcher", "Writer"]
+    print('IN SUPERVISOR \n')
+    members = ["Researcher", "Casual"]
     system_prompt = SUPERVISOR_PROMPT.format(members=", ".join(members))
     
     # Trim history to avoid 413 Payload Too Large and TPM rate limits
@@ -58,7 +59,7 @@ def supervisor_node(state: AgentState):
     
     # Use dynamic LLM routing
     llm = get_llm(messages)
-    structured_llm = llm.with_structured_output(Router)
+    structured_llm = llm.bind_tools([Router], tool_choice="Router").with_structured_output(Router)
     
     prompt = ChatPromptTemplate.from_messages([
         ("system", system_prompt),
@@ -66,6 +67,34 @@ def supervisor_node(state: AgentState):
     ])
     
     chain = prompt | structured_llm
-    response = chain.invoke({"messages": messages})
-    
-    return {"next_agent": response.next_agent}
+    try:
+        response = chain.invoke({"messages": messages})
+        next_agent = response.next_agent
+    except Exception as e:
+        error_str = str(e)
+        print('\n\n\n', error_str, '\n\n\n')
+        # if "tool_use_failed" in error_str and "failed_generation" in error_str:
+        #     import re
+        #     match = re.search(r"'failed_generation':\s*'([^']*)'", error_str)
+        #     if not match:
+        #         match = re.search(r'"failed_generation":\s*"([^"]*)"', error_str)
+        if "failed_generation" in error_str:
+            import re
+            match = re.search(r'"failed_generation":\s*"([^"]*)"', error_str)
+            failed_generation = match.group(1) if match else "I cannot process this request."
+            
+            from langchain_core.messages import RemoveMessage
+            last_msg_id = messages[-1].id
+            print('\n', 'Supervisor Blocked/Refused', failed_generation, '\n')
+            return {
+                "messages": [RemoveMessage(id=last_msg_id)],
+                "next_agent": "FINISH",
+                "error_response": failed_generation
+            }
+        raise e
+        
+    print('\n', 'Supervisor Node')
+    # for msg in messages:
+    #     print(msg.content, response)
+    print()
+    return {"next_agent": next_agent, "error_response": ""}

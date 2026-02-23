@@ -15,4 +15,4 @@ def writer_node(state: AgentState):
     
     chain = prompt | llm
     response = chain.invoke({"messages": messages})
-    return {"messages": [response]}
+    return {"messages": [response], "next_agent": "FINISH"}

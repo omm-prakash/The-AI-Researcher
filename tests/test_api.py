@@ -1,6 +1,11 @@
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 import pytest
 from src.main import app
 from src.utils.context import manage_context
+from src.graph.builder import build_graph
 
 @pytest.fixture
 def client():
@@ -15,6 +20,9 @@ def test_context_manager():
     # 100 tokens * 4 chars = 400 chars chunk size limit
     assert len(chunked) <= 400
 
-# def test_chat_endpoint_no_db(client):
-#     response = client.post("/chat", json={"thread_id": "test_1", "message": "Hi"})
-#     assert response.status_code in [200, 500]
+def test_graph_compilation():
+    """Test if the LangGraph correctly compiles with the Casual node"""
+    builder = build_graph()
+    # Check if compilation passes without errors
+    agent = builder.compile()
+    assert agent is not None

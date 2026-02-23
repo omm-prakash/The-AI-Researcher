@@ -19,16 +19,38 @@ const sendMessage = async (payload) => {
   isWaiting.value = true
   
   try {
-    const response = await fetch('http://localhost:8000/chat', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        thread_id: threadId.value,
-        message: payload.text || 'Process audio or attached files'
-      })
-    })
+    let requestOptions = {};
+    
+    if (payload.attachments && payload.attachments.length > 0) {
+      // Use FormData for file uploads
+      const formData = new FormData();
+      formData.append('thread_id', threadId.value);
+      formData.append('message', payload.text || 'Analyze attached files');
+      
+      payload.attachments.forEach(file => {
+        formData.append('files', file);
+      });
+      
+      requestOptions = {
+        method: 'POST',
+        // DO NOT set Content-Type header for FormData, browser sets it automatically with boundary
+        body: formData
+      };
+    } else {
+      // Standard JSON request
+      requestOptions = {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          thread_id: threadId.value,
+          message: payload.text || 'Process request'
+        })
+      };
+    }
+    
+    const response = await fetch('http://localhost:8000/chat', requestOptions)
     
     const data = await response.json()
     if (response.ok) {

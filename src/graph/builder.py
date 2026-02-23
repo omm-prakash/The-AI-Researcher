@@ -4,6 +4,8 @@ from src.graph.state import AgentState
 from src.graph.supervisor import supervisor_node
 from src.graph.researcher import researcher_node
 from src.graph.writer import writer_node
+from src.graph.casual import casual_node
+from src.graph.guardrail import content_filter
 from src.tools.search import internet_search_tool
 
 def build_graph():
@@ -11,14 +13,26 @@ def build_graph():
     
     # Add nodes
     builder.add_node("Supervisor", supervisor_node)
+    builder.add_node("Guardrail", content_filter)
     builder.add_node("Researcher", researcher_node)
     builder.add_node("Writer", writer_node)
+    builder.add_node("Casual", casual_node)
     
     # We need a tool execution node for the researcher
     # builder.add_node("Tools", ToolNode([internet_search_tool]))
     
     # Add edges
-    builder.add_edge(START, "Supervisor")
+    builder.add_edge(START, "Guardrail")
+    
+    # Guardrail either passes to Supervisor or terminates
+    builder.add_conditional_edges(
+        "Guardrail",
+        lambda state: state["next_agent"],
+        {
+            "Supervisor": "Supervisor",
+            "FINISH": END
+        }
+    )
     
     # The supervisor determines the next action
     builder.add_conditional_edges(
@@ -26,7 +40,7 @@ def build_graph():
         lambda state: state["next_agent"],
         {
             "Researcher": "Researcher",
-            "Writer": "Writer",
+            "Casual": "Casual",
             "FINISH": END
         }
     )
@@ -45,7 +59,10 @@ def build_graph():
     # builder.add_edge("Tools", "Researcher")
     
     # Writers return to supervisor
-    builder.add_edge("Writer", "Supervisor")
+    # builder.add_edge("Researcher", "Supervisor")
+    builder.add_edge("Casual", END)
+    builder.add_edge("Researcher", "Writer")
+    builder.add_edge("Writer", END)
     # agent = builder.compile()
     
     return builder
