@@ -1,8 +1,12 @@
-from fastapi.testclient import TestClient
+import pytest
 from src.main import app
 from src.utils.context import manage_context
 
-client = TestClient(app)
+@pytest.fixture
+def client():
+    app.config['TESTING'] = True
+    with app.test_client() as client:
+        yield client
 
 def test_context_manager():
     """Test the context engineering text chunking function"""
@@ -11,8 +15,6 @@ def test_context_manager():
     # 100 tokens * 4 chars = 400 chars chunk size limit
     assert len(chunked) <= 400
 
-# To run the API integration test, the Postgres DB must be running.
-# Example payload for manual testing or when DB is up:
-# def test_chat_endpoint_no_db():
+# def test_chat_endpoint_no_db(client):
 #     response = client.post("/chat", json={"thread_id": "test_1", "message": "Hi"})
-#     assert response.status_code in [200, 500]  # 500 if DB is down
+#     assert response.status_code in [200, 500]
