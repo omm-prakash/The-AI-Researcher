@@ -1,10 +1,7 @@
 <script setup>
 import { ref } from 'vue'
 
-const props = defineProps({
-  disabled: Boolean
-})
-
+const props = defineProps({ disabled: Boolean })
 const emit = defineEmits(['send'])
 
 const text = ref('')
@@ -13,225 +10,178 @@ const attachments = ref([])
 
 const adjustHeight = () => {
   if (textarea.value) {
-    textarea.value.style.height = 'auto';
-    textarea.value.style.height = Math.min(textarea.value.scrollHeight, 200) + 'px';
+    textarea.value.style.height = 'auto'
+    textarea.value.style.height = Math.min(textarea.value.scrollHeight, 180) + 'px'
   }
 }
 
 const handleFileSelect = (event) => {
-    const files = Array.from(event.target.files);
-    if (files.length > 0) {
-        // Enforce single file limit by taking only the latest file in the array
-        attachments.value = [files[files.length - 1]];
-    }
-    event.target.value = ''; // Reset input
+  const files = Array.from(event.target.files)
+  if (files.length > 0) attachments.value = [files[files.length - 1]]
+  event.target.value = ''
 }
 
-const removeAttachment = (index) => {
-    attachments.value.splice(index, 1);
-}
+const removeAttachment = (i) => attachments.value.splice(i, 1)
 
 const submit = () => {
   if ((!text.value.trim() && attachments.value.length === 0) || props.disabled) return
-  
   emit('send', { text: text.value, attachments: [...attachments.value] })
   text.value = ''
   attachments.value = []
-  if (textarea.value) {
-    textarea.value.style.height = 'auto'
-  }
+  if (textarea.value) textarea.value.style.height = 'auto'
 }
 
 const onKeyDown = (e) => {
-  if (e.key === 'Enter' && !e.shiftKey) {
-    e.preventDefault()
-    submit()
-  }
-}
-
-// Dummy record button state for UI completeness
-const isRecording = ref(false)
-const toggleRecord = () => {
-    isRecording.value = !isRecording.value;
-    if(!isRecording.value) {
-        text.value += (text.value ? " " : "") + "[Audio Message Processing Component]";
-    }
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submit() }
 }
 </script>
 
 <template>
-  <div class="input-wrapper" :class="{ disabled }">
-    
-    <div class="attachments-preview" v-if="attachments.length > 0">
-        <div class="attachment-chip" v-for="(file, i) in attachments" :key="i">
-            <span>{{ file.name }}</span>
-            <button class="remove-btn" @click="removeAttachment(i)">×</button>
-        </div>
-    </div>
-    
-    <div class="input-box">
-      <div class="actions-left">
-        <label class="icon-btn" title="Attach file">
-          <input type="file" @change="handleFileSelect" style="display: none;" accept="image/*,.pdf" />
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>
-        </label>
+  <div class="input-wrap" :class="{ disabled }">
+
+    <!-- Attachment chips -->
+    <div class="chips" v-if="attachments.length">
+      <div class="chip" v-for="(file, i) in attachments" :key="i">
+        <span>{{ file.name }}</span>
+        <button class="chip-rm" @click="removeAttachment(i)">×</button>
       </div>
-      
+    </div>
+
+    <div class="box">
+      <!-- Left: attach -->
+      <label class="icon-btn" title="Attach file">
+        <input type="file" @change="handleFileSelect" style="display:none" accept="image/*,.pdf,audio/*" />
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
+        </svg>
+      </label>
+
       <textarea
         ref="textarea"
         v-model="text"
         rows="1"
-        placeholder="Message the assistant..."
+        placeholder="Message the assistant…"
         @input="adjustHeight"
         @keydown="onKeyDown"
         :disabled="disabled"
-      ></textarea>
-      
-      <div class="actions-right">
-        <button v-if="!text && attachments.length === 0" class="icon-btn mic-btn" :class="{ recording: isRecording }" @click="toggleRecord" title="Record Audio">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>
-        </button>
-        
-        <button v-else class="icon-btn send-btn" @click="submit" :disabled="disabled" title="Send Message">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
-        </button>
-      </div>
+      />
+
+      <!-- Right: send or mic -->
+      <button
+        v-if="text || attachments.length"
+        class="icon-btn send-btn"
+        @click="submit"
+        :disabled="disabled"
+        title="Send"
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="22" y1="2" x2="11" y2="13"/>
+          <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+        </svg>
+      </button>
+      <button v-else class="icon-btn" title="Voice (coming soon)" disabled>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+          <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+          <line x1="12" y1="19" x2="12" y2="23"/>
+          <line x1="8"  y1="23" x2="16" y2="23"/>
+        </svg>
+      </button>
     </div>
-    <div class="footer-text">Assistant can make mistakes. Verify important information.</div>
   </div>
 </template>
 
 <style scoped>
-.input-wrapper {
-  position: relative;
+.input-wrap {
   width: 100%;
 }
 
-.attachments-preview {
-    display: flex;
-    gap: 0.5rem;
-    padding: 0.5rem 0;
-    flex-wrap: wrap;
+.chips {
+  display: flex;
+  gap: 0.4rem;
+  padding: 0.4rem 0 0.5rem;
+  flex-wrap: wrap;
 }
 
-.attachment-chip {
-    background: var(--bg-lighter);
-    border: 1px solid var(--border);
-    padding: 0.25rem 0.5rem;
-    border-radius: 6px;
-    font-size: 0.8rem;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
+.chip {
+  background: #1a1a20;
+  border: 1px solid rgba(255,255,255,0.08);
+  padding: 0.2rem 0.55rem;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  color: #888898;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
 }
 
-.remove-btn {
-    background: none;
-    border: none;
-    color: var(--text-secondary);
-    cursor: pointer;
-    font-size: 1.1rem;
-    line-height: 1;
+.chip-rm {
+  background: none;
+  border: none;
+  color: #555566;
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+  padding: 0;
+  transition: color 0.15s;
 }
+.chip-rm:hover { color: #d44; }
 
-.remove-btn:hover {
-    color: #ef4444;
-}
-
-.input-box {
+.box {
   display: flex;
   align-items: flex-end;
-  background: var(--glass-bg);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid var(--glass-border);
-  border-radius: 20px;
-  padding: 0.5rem 1rem;
-  box-shadow: var(--shadow);
+  background: #111116;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 14px;
+  padding: 0.45rem 0.8rem;
   transition: border-color 0.2s;
+  gap: 0.25rem;
 }
 
-.input-box:focus-within {
-  border-color: rgba(255, 255, 255, 0.2);
+.box:focus-within {
+  border-color: rgba(255,255,255,0.15);
 }
 
 textarea {
   flex: 1;
   background: transparent;
   border: none;
-  color: var(--text-primary);
+  color: #d8d8e8;
   font-family: inherit;
-  font-size: 1rem;
-  line-height: 1.5;
-  padding: 0.5rem 0.5rem;
+  font-size: 0.93rem;
+  line-height: 1.55;
+  padding: 0.35rem 0.5rem;
   resize: none;
-  max-height: 200px;
+  max-height: 180px;
   overflow-y: auto;
   outline: none;
 }
 
-textarea::placeholder {
-  color: var(--text-secondary);
-}
-
-.actions-left, .actions-right {
-  display: flex;
-  align-items: center;
-  padding-bottom: 0.4rem;
-}
+textarea::placeholder { color: #3a3a4a; }
 
 .icon-btn {
   background: transparent;
   border: none;
-  color: var(--text-secondary);
+  color: #3a3a4a;
   cursor: pointer;
-  padding: 0.5rem;
-  border-radius: 50%;
+  padding: 0.4rem;
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s;
+  transition: color 0.18s, background 0.18s;
+  flex-shrink: 0;
 }
-
-.icon-btn svg {
-  width: 20px;
-  height: 20px;
-}
-
-.icon-btn:hover {
-  background: rgba(255, 255, 255, 0.05);
-  color: var(--text-primary);
-}
+.icon-btn svg { width: 18px; height: 18px; }
+.icon-btn:hover { color: #8888a0; background: rgba(255,255,255,0.04); }
 
 .send-btn {
-  color: white;
-  background: var(--accent);
+  color: #4f6ef7;
 }
-
 .send-btn:hover {
-  background: var(--accent-hover);
+  color: #7a9bff;
+  background: rgba(79, 110, 247, 0.1);
 }
 
-.mic-btn.recording {
-    color: #ef4444;
-    animation: pulse 1.5s infinite;
-}
-
-@keyframes pulse {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.1); }
-    100% { transform: scale(1); }
-}
-
-.disabled {
-  opacity: 0.7;
-  pointer-events: none;
-}
-
-.footer-text {
-  text-align: center;
-  font-size: 0.75rem;
-  color: var(--text-secondary);
-  margin-top: 0.75rem;
-}
+.disabled { opacity: 0.5; pointer-events: none; }
 </style>

@@ -1,14 +1,25 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
 :root {
-  --bg-color: #0f111a;
-  --bg-lighter: #1a1d2d;
-  --text-primary: #e2e8f0;
-  --text-secondary: #94a3b8;
-  --accent: #3b82f6;
-  --accent-hover: #2563eb;
-  --border: rgba(255, 255, 255, 0.08);
-  --glass-bg: rgba(26, 29, 45, 0.6);
-  --glass-border: rgba(255, 255, 255, 0.05);
-  --shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  --bg: #0a0a0d;
+  --bg-panel: #0e0e13;
+  --bg-surface: #141418;
+  --bg-elevated: #1c1c22;
+  --text-primary: #e8e8ed;
+  --text-muted: #6b6b78;
+  --text-dim: #3d3d48;
+  --accent: #4f6ef7;
+  --accent-hover: #3a5ae0;
+  --border: rgba(255, 255, 255, 0.055);
+  --border-mid: rgba(255, 255, 255, 0.09);
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.35);
+  --shadow-md: 0 8px 32px rgba(0, 0, 0, 0.55);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
 }
 
 body,
@@ -17,22 +28,126 @@ html {
   padding: 0;
   width: 100%;
   height: 100%;
-  background-color: var(--bg-color);
+  background: var(--bg);
   color: var(--text-primary);
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   overflow: hidden;
+  -webkit-font-smoothing: antialiased;
 }
 
 #app {
   width: 100%;
   height: 100%;
-  display: flex;
-  flex-direction: column;
 }
 
-/* Scrollbar */
+/* ── Shell ───────────────────────────────────────────────────────────────── */
+.app-shell {
+  display: flex;
+  height: 100vh;
+  width: 100%;
+  overflow: hidden;
+}
+
+/* ── Chat pane ───────────────────────────────────────────────────────────── */
+.chat-pane {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  height: 100vh;
+  overflow: hidden;
+  background: var(--bg);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.9rem 1.5rem;
+  background: var(--bg-panel);
+  flex-shrink: 0;
+  z-index: 20;
+}
+
+.header h1 {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: #ffffff;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 60vw;
+}
+
+/* ── Scrollable messages ─────────────────────────────────────────────────── */
+.chat-body {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  /* critical: lets flex child shrink below content size */
+}
+
+/* Messages: pad and stack from top */
+.messages-zone {
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 1.75rem 1.25rem 1rem;
+}
+
+/* ── Input bar — always pinned at bottom ─────────────────────────────────── */
+.input-bar {
+  flex-shrink: 0;
+  background: var(--bg);
+  padding: 0.75rem 1.5rem 1.25rem;
+}
+
+.input-inner {
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+/* Cancel button shown while waiting for backend response */
+.cancel-row {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 0.5rem;
+}
+
+.cancel-btn {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #6060a0;
+  font-size: 0.75rem;
+  font-family: inherit;
+  padding: 0.3rem 0.9rem;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.cancel-btn:hover {
+  color: #e06060;
+  border-color: rgba(224, 96, 96, 0.3);
+}
+
+/* ── Footer caption ─────────────────────────────────────────────────────── */
+.footer-note {
+  text-align: center;
+  font-size: 0.7rem;
+  color: var(--text-dim);
+  padding-top: 0.4rem;
+}
+
+/* ── Scrollbar ───────────────────────────────────────────────────────────── */
 ::-webkit-scrollbar {
-  width: 6px;
+  width: 5px;
 }
 
 ::-webkit-scrollbar-track {
@@ -40,82 +155,34 @@ html {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.14);
 }
 
-/* Layout */
-.app-container {
-  display: flex;
-  flex-direction: column;
-  height: 100vh;
-  width: 100%;
-  max-width: 900px;
-  margin: 0 auto;
-  position: relative;
-}
-
-.header {
-  padding: 1rem 1.5rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-bottom: 1px solid var(--border);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  background: var(--glass-bg);
-  z-index: 10;
-}
-
-.header h1 {
-  margin: 0;
-  font-size: 1.25rem;
-  font-weight: 600;
-  background: linear-gradient(135deg, #60a5fa, #a78bfa);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-
-.chat-container {
-  flex: 1;
-  overflow-y: auto;
-  padding: 1.5rem;
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-  scroll-behavior: smooth;
-}
-
-.input-container {
-  padding: 1.5rem;
-  background: linear-gradient(to top, var(--bg-color) 80%, transparent);
-  z-index: 10;
-}
-
-/* Markdown Styles */
+/* ── Markdown ────────────────────────────────────────────────────────────── */
 .message-content blockquote {
-  border-left: 3px solid var(--accent);
+  border-left: 2px solid var(--accent);
   margin: 0.5rem 0;
   padding-left: 1rem;
-  color: var(--text-secondary);
+  color: var(--text-muted);
 }
 
 .message-content pre {
-  background: rgba(0, 0, 0, 0.3);
+  background: rgba(0, 0, 0, 0.5);
   padding: 1rem;
   border-radius: 8px;
   overflow-x: auto;
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-mid);
 }
 
 .message-content code {
-  font-family: monospace;
-  background: rgba(0, 0, 0, 0.3);
-  padding: 0.2rem 0.4rem;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  background: rgba(0, 0, 0, 0.35);
+  padding: 0.15rem 0.4rem;
   border-radius: 4px;
+  font-size: 0.87em;
 }

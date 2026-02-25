@@ -17,6 +17,9 @@ CORS(app, resources={r"/*": {"origins": "*"}})
 # Add Middlewares
 setup_middlewares(app)
 
+# Build graph once at startup — avoid rebuilding on every request
+_graph_builder = build_graph()
+
 @app.route("/chat", methods=["POST"])
 def chat_endpoint():
     """
@@ -64,7 +67,7 @@ def chat_endpoint():
             elif ext in ['mp3', 'wav', 'ogg', 'm4a']:
                 attachment_type = "audio"
     
-    builder = build_graph()
+    builder = _graph_builder
     
     with get_postgres_setup() as (checkpointer, store):
         # Compile the graph with Checkpointer and Store
@@ -77,16 +80,15 @@ def chat_endpoint():
         # Start execution graph
         input_message = HumanMessage(content=message_text)
         
-        # Use sync invoke as the checkpointer is synchronous
         final_state = graph.invoke(
             {
                 "messages": [input_message],
                 "attachment_type": attachment_type,
-                "attachment_path": attachment_path
+                "attachment_path": attachment_path,
+                "error_response": "",   # reset stale error from previous run on this thread
             },
             config=config
         )
-        print('final state', type(final_state), final_state.keys())
         
         if final_state and 'error_response' in final_state and final_state["error_response"]:
             final_response = final_state["error_response"]
@@ -94,17 +96,9 @@ def chat_endpoint():
             final_response = final_state["messages"][-1].content
         else:
             final_response = "No response generated."
-            
-        graph.update_state(
-            config=config,
-            state={
-                "error_response": "",
-                "attachment_type": "none",
-                "attachment_path": "",
-                "next_agent": ""
-            }
-        )
 
+        # NOTE: attachment_type is passed fresh every request from the frontend,
+        # so there is no need to write it back to the checkpoint here.
         return jsonify({"response": final_response, "thread_id": thread_id})
 
 

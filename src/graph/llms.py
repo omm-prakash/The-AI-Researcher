@@ -1,30 +1,39 @@
 models_dict = {
     "agentic-systems": [
-        "groq/compound", 
-        "groq/compound-mini"
+        "openai/gpt-oss-20b",
+        "openai/gpt-oss-120b",
+        "moonshotai/kimi-k2-instruct-0905",
+        "moonshotai/kimi-k2-instruct"
     ],
     "logic-reasoning": [
-        "gpt-oss-120b", 
-        "qwen3-32b", 
-        "llama-3.3-70b"
+        "openai/gpt-oss-120b",
+        "qwen/qwen3-32b",
+        "llama-3.3-70b-versatile",
+        "allam-2-7b"
     ],
     "multimodal-moe": [
-        "llama-4-maverick", 
-        "llama-4-scout"
+        "meta-llama/llama-4-maverick-17b-128e-instruct",
+        "meta-llama/llama-4-scout-17b-16e-instruct"
     ],
     "efficiency-edge": [
-        "llama-3.1-8b-instant"
-        "gpt-oss-20b", 
+        "openai/gpt-oss-20b",
+        "llama-3.1-8b-instant",
     ],
     "audio-voice": [
-        "whisper-large-v3", 
-        "orpheus-v1-english"
+        "whisper-large-v3",
+        "whisper-large-v3-turbo",
+        "canopylabs/orpheus-v1-english",
+        "canopylabs/orpheus-arabic-saudi"
     ],
     "safety-security": [
-        "llama-guard-4-12b", 
-        "llama-prompt-guard"
+        "meta-llama/llama-guard-4-12b",
+        "meta-llama/llama-prompt-guard-2-22m",
+        "meta-llama/llama-prompt-guard-2-86m",
+        "openai/gpt-oss-safeguard-20b"
     ]
 }
+
+
 
 import os
 from langchain_core.rate_limiters import InMemoryRateLimiter
@@ -38,17 +47,35 @@ rate_limiter = InMemoryRateLimiter(
 
 def get_llm(category, exclude_model=None):
     api_key = os.getenv("GROQ_API_KEY")
-    if exclude_model is None:
-        model_name = models_dict[category][0]
-    else:
-        for name in models_dict[category]:
-            if name != exclude_model:
-                model_name = name
-                break
+    
+    # Get all available models for this category, skipping the excluded one if any
+    available_models = [m for m in models_dict.get(category, []) if m != exclude_model]
+    
+    # If no models found, fallback to a safe small default
+    # if not available_models:
+    #     available_models = ["llama-3.1-8b-instant"]
 
-    return ChatGroq(
-        model=model_name, 
+    # Instantiate the primary model
+    primary_llm = ChatGroq(
+        model=available_models[0], 
         api_key=api_key,
-        max_retries=2,
+        max_retries=1, # reduce retries so it falls back faster
         rate_limiter=rate_limiter
     )
+    
+    # Create fallbacks for all remaining models in the list
+    fallbacks = []
+    for model_name in available_models[1:]:
+        fallback_llm = ChatGroq(
+            model=model_name,
+            api_key=api_key,
+            max_retries=1,
+            rate_limiter=rate_limiter
+        )
+        fallbacks.append(fallback_llm)
+        
+    # Bind fallbacks if any exist
+    if fallbacks:
+        return primary_llm.with_fallbacks(fallbacks)
+        
+    return primary_llm
