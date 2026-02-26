@@ -3,7 +3,7 @@ from langchain_core.messages import SystemMessage
 from src.graph.state import AgentState
 from src.graph.prompts import RESEARCHER_PROMPT
 from src.graph.llms import get_llm
-from src.tools.search import internet_search_tool
+from src.tools.search import tavily_search_tool, tavily_extract_tool
 from src.utils.context import trim_history, flatten_for_text_llm
 from src.utils.logger import get_logger
 
@@ -38,7 +38,7 @@ def researcher_node(state: AgentState):
         attachment_context = ""
 
     # Researcher only needs internet search — file tools are handled by subagents
-    tools = [internet_search_tool]
+    tools = [tavily_search_tool, tavily_extract_tool]
     llm_with_tools = llm.bind_tools(tools)
 
     system_content = RESEARCHER_PROMPT.format(attachment_context=attachment_context)

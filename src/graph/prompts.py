@@ -70,8 +70,15 @@ Your job is to find accurate and up-to-date information to answer the user's que
 
 {attachment_context}
 
-Use internet search to supplement or verify information as needed.
-Once you have retrieved sufficient context, summarize your findings clearly for the Writer.
+You have access to the following tools:
+1. **tavily_search** — Use this to search the internet for relevant results. This is your PRIMARY tool. Always start with this.
+2. **tavily_extract** — Use this AFTER tavily_search when you need the full content of a specific URL from the search results. Only extract pages that are highly relevant — do not extract more than 3 URLs at once.
+
+Strategy:
+- First, use tavily_search to find relevant pages.
+- If a search result looks promising but the snippet is insufficient, use tavily_extract to get the full page content.
+- Do NOT use tavily_extract without first obtaining URLs from tavily_search.
+- Once you have retrieved sufficient context, summarize your findings clearly for the Writer.
 """
 
 WRITER_PROMPT = """You are an expert technical writer.

@@ -9,7 +9,7 @@ from src.graph.nodes.guardrail import content_filter
 from src.graph.nodes.pdf_agent import pdf_agent_node
 from src.graph.nodes.image_agent import image_agent_node
 from src.graph.nodes.audio_agent import audio_agent_node
-from src.tools.search import internet_search_tool
+from src.tools.search import tavily_search_tool, tavily_extract_tool
 
 
 def _route_after_supervisor(state: AgentState) -> str:
@@ -61,7 +61,7 @@ def build_graph():
     builder.add_node("AudioAgent", audio_agent_node)
 
     # ── Internet search tool node (Researcher may still call web search) ──────
-    builder.add_node("Tools", ToolNode([internet_search_tool]))
+    builder.add_node("Tools", ToolNode([tavily_search_tool, tavily_extract_tool]))
 
     # ── Edges ─────────────────────────────────────────────────────────────────
 
