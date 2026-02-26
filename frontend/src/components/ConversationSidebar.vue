@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, watchEffect, onMounted } from 'vue'
 
 const props = defineProps({
   conversations: Array,
@@ -24,9 +24,40 @@ const commitRename = (id) => {
 }
 
 const cancelRename = () => { editingId.value = null }
+
+// ── Dark Mode ─────────────────────────────────────────────────────────────
+const isDarkMode = ref(false)
+
+onMounted(() => {
+  const saved = localStorage.getItem('tar-theme')
+  if (saved) {
+    isDarkMode.value = saved === 'dark'
+  } else {
+    isDarkMode.value = window.matchMedia('(prefers-color-scheme: dark)').matches
+  }
+})
+
+watchEffect(() => {
+  if (isDarkMode.value) {
+    document.documentElement.classList.add('dark-mode')
+    document.body.classList.add('dark-mode')
+    localStorage.setItem('tar-theme', 'dark')
+  } else {
+    document.documentElement.classList.remove('dark-mode')
+    document.body.classList.remove('dark-mode')
+    localStorage.setItem('tar-theme', 'light')
+  }
+})
 </script>
 
 <template>
+  <button v-if="collapsed" class="mobile-open-btn" @click="collapsed = false" title="Open Menu">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <line x1="3" y1="12" x2="21" y2="12"/>
+      <line x1="3" y1="6" x2="21" y2="6"/>
+      <line x1="3" y1="18" x2="21" y2="18"/>
+    </svg>
+  </button>
   <aside class="sidebar" :class="{ collapsed }">
 
     <!-- Hamburger / collapse toggle -->
@@ -111,6 +142,29 @@ const cancelRename = () => { editingId.value = null }
           <span>Auto-listen</span>
           <span class="pill" :class="autoListen ? 'on' : 'off'">{{ autoListen ? 'ON' : 'OFF' }}</span>
         </button>
+
+        <!-- Dark Mode toggle -->
+        <button
+          class="auto-listen-btn"
+          @click="isDarkMode = !isDarkMode"
+          :title="isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'"
+        >
+          <svg v-if="isDarkMode" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="5" />
+            <line x1="12" y1="1" x2="12" y2="3" />
+            <line x1="12" y1="21" x2="12" y2="23" />
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+            <line x1="1" y1="12" x2="3" y2="12" />
+            <line x1="21" y1="12" x2="23" y2="12" />
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+          </svg>
+          <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+          </svg>
+          <span>{{ isDarkMode ? 'Light Mode' : 'Dark Mode' }}</span>
+        </button>
       </footer>
     </template>
 
@@ -146,13 +200,13 @@ const cancelRename = () => { editingId.value = null }
   justify-content: center;
   background: transparent;
   border: none;
-  color: #7a9eb8;
+  color: #294050;
   cursor: pointer;
   padding: 0.9rem;
   width: 100%;
   transition: color 0.18s, background 0.18s;
 }
-.collapse-btn:hover { color: #40627a; background: rgba(70, 130, 180, 0.07); }
+.collapse-btn:hover { color: #283e4d; background: rgba(70, 130, 180, 0.07); }
 .collapse-btn svg { width: 16px; height: 16px; }
 
 .collapsed-actions {
@@ -163,8 +217,8 @@ const cancelRename = () => { editingId.value = null }
 
 .quick-new-btn {
   background: rgba(82, 119, 139, 0.15);
-  border: 1px solid rgba(82, 119, 139, 0.35);
-  color: #52778b;
+  border: 1px solid rgba(53, 78, 91, 0.35);
+  color: #385361;
   border-radius: 8px;
   width: 32px;
   height: 32px;
@@ -177,7 +231,7 @@ const cancelRename = () => { editingId.value = null }
 .quick-new-btn:hover {
   background: rgba(82, 119, 139, 0.28);
   border-color: rgba(82, 119, 139, 0.5);
-  color: #30516a;
+  color: #21384a;
   transform: scale(1.05);
 }
 .quick-new-btn svg { width: 16px; height: 16px; }
@@ -195,13 +249,13 @@ const cancelRename = () => { editingId.value = null }
   font-weight: 600;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: #7a9eb8;
+  color: #2e3e4a;
 }
 
 .new-btn {
   background: rgba(82, 119, 139, 0.12);
   border: 1px solid rgba(82, 119, 139, 0.28);
-  color: #52778b;
+  color: #364f5d;
   border-radius: 7px;
   width: 26px;
   height: 26px;
@@ -248,7 +302,7 @@ const cancelRename = () => { editingId.value = null }
   flex: 1;
   font-size: 0.82rem;
   font-weight: 400;
-  color: #60809a;
+  color: #475f73;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -263,7 +317,7 @@ const cancelRename = () => { editingId.value = null }
   opacity: 0;
   background: transparent;
   border: none;
-  color: #90aac4;
+  color: #66788b;
   cursor: pointer;
   padding: 2px;
   border-radius: 4px;
@@ -291,14 +345,14 @@ const cancelRename = () => { editingId.value = null }
 .sidebar-footer {
   padding: 0.6rem 0.9rem 0.75rem;
   font-size: 0.64rem;
-  color: #90aac4;
+  color: #617385;
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
   gap: 0.55rem;
 }
 
-.footer-hint { color: #90aac4; }
+.footer-hint { color: #5d6f80; }
 
 .auto-listen-btn {
   display: flex;
@@ -312,7 +366,7 @@ const cancelRename = () => { editingId.value = null }
   cursor: pointer;
   font-family: inherit;
   font-size: 0.75rem;
-  color: #60809a;
+  color: #384b5a;
   transition: background 0.18s, border-color 0.18s, color 0.18s;
 }
 
@@ -347,4 +401,51 @@ const cancelRename = () => { editingId.value = null }
 
 .pill.on  { background: rgba(82, 119, 139, 0.15); color: #52778b; }
 .pill.off { background: rgba(120, 155, 180, 0.12); color: #7a9eb8; }
+
+/* ── Mobile Responsiveness ── */
+.mobile-open-btn {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .mobile-open-btn {
+    display: flex;
+    position: absolute;
+    top: 0.8rem;
+    left: 0.8rem;
+    z-index: 50;
+    background: rgba(244, 248, 255, 0.8);
+    border: 1px solid rgba(130, 165, 200, 0.4);
+    border-radius: 8px;
+    color: #52778b;
+    width: 36px;
+    height: 36px;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    backdrop-filter: blur(10px);
+  }
+  
+  .sidebar {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    z-index: 100;
+    box-shadow: 4px 0 24px rgba(0,0,0,0.15);
+  }
+
+  .sidebar.collapsed {
+    transform: translateX(-100%);
+    width: 240px; /* keep the width so it slides out cleanly */
+    min-width: 240px;
+    border-right: none;
+    box-shadow: none;
+  }
+
+  .collapsed-actions {
+    display: none; /* hide the quick new button when slid out entirely */
+  }
+}
 </style>

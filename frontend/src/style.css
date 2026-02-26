@@ -34,6 +34,32 @@
   --blur: 18px;
 }
 
+/* ── Dark Mode Tokens ────────────────────────────────────────────────────── */
+body.dark-mode {
+  --bg-from: #121820;
+  --bg-mid: #0a0f15;
+  --bg-to: #05080c;
+
+  --glass: rgba(18, 24, 32, 0.65);
+  --glass-strong: rgba(18, 24, 32, 0.85);
+  --glass-subtle: rgba(18, 24, 32, 0.45);
+  --glass-border: rgba(255, 255, 255, 0.12);
+  --glass-border-s: rgba(255, 255, 255, 0.06);
+
+  --text-primary: #e0ebf9;
+  --text-muted: #9aa8b8;
+  --text-dim: #7a9eb8;
+  --text-hint: #50677a;
+
+  --accent: #6b93af;
+  --accent-light: #8faec5;
+  --accent-glow: rgba(107, 147, 175, 0.25);
+
+  --shadow-sm: 0 2px 12px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 8px 32px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 20px 60px rgba(0, 0, 0, 0.8);
+}
+
 /* ── Reset ──────────────────────────────────────────────────────────────── */
 *,
 *::before,
@@ -64,6 +90,25 @@ body {
   background-size: cover;
 }
 
+/* Dark mode overlay for background image */
+body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(8, 12, 18, 0.75);
+  opacity: 0;
+  pointer-events: none;
+  z-index: -1;
+  transition: opacity 0.3s ease;
+}
+
+body.dark-mode::before {
+  opacity: 1;
+}
+
 /* ── App shell ───────────────────────────────────────────────────────────── */
 .app-shell {
   display: flex;
@@ -84,24 +129,16 @@ body {
 }
 
 .brand-main {
-  position: absolute;
-  top: 1.2rem;
-  left: 1.5rem;
+  position: relative;
   font-size: 1.1rem;
   font-weight: 700;
   color: var(--text-primary);
   letter-spacing: 0.5px;
   z-index: 10;
-  pointer-events: none;
-  /* Instead of absolute positioning relative to window, it's relative to the .chat-pane flex container */
-  position: relative;
-  align-self: flex-start;
-  margin-top: 1.2rem;
-  margin-left: 1.5rem;
-  margin-bottom: -2.3rem;
-  /* pull up the body content below it */
-  top: auto;
-  left: auto;
+  flex-shrink: 0;
+  width: 100%;
+  padding: 1rem 1.5rem;
+  background: transparent;
 }
 
 /* ── Header ──────────────────────────────────────────────────────────────── */

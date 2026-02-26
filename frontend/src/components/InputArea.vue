@@ -204,7 +204,7 @@ onBeforeUnmount(() => stopMic())
         ref="textarea"
         v-model="text"
         rows="1"
-        placeholder="Message the assistant… (or paste / drop a file)"
+        placeholder="Message the assistant…"
         @input="adjustHeight"
         @keydown="onKeyDown"
         @paste="onPaste"
@@ -265,7 +265,7 @@ onBeforeUnmount(() => stopMic())
   top: 50%; left: 50%;
   transform: translate(-50%, -50%);
   font-size: 0.8rem;
-  color: #52778b;
+  color: #354d5a;
   pointer-events: none;
   white-space: nowrap;
   z-index: 2;
@@ -279,7 +279,7 @@ onBeforeUnmount(() => stopMic())
 }
 
 .chip {
-  background: rgba(244, 248, 255, 0.75);
+  background: rgba(191, 212, 248, 0.75);
   border: 1px solid rgba(130, 165, 200, 0.3);
   padding: 0.2rem 0.55rem;
   border-radius: 6px;
@@ -293,7 +293,7 @@ onBeforeUnmount(() => stopMic())
 .chip-rm {
   background: none;
   border: none;
-  color: #7a9eb8;
+  color: #303f4a;
   cursor: pointer;
   font-size: 1rem;
   line-height: 1;
@@ -338,12 +338,12 @@ textarea {
   outline: none;
 }
 
-textarea::placeholder { color: #90aac4; }
+textarea::placeholder { color: #495f76; }
 
 .icon-btn {
   background: transparent;
   border: none;
-  color: #90aac4;
+  color: #586777;
   cursor: pointer;
   padding: 0.4rem;
   border-radius: 8px;
@@ -354,15 +354,15 @@ textarea::placeholder { color: #90aac4; }
   flex-shrink: 0;
 }
 .icon-btn svg { width: 18px; height: 18px; }
-.icon-btn:hover { color: #52778b; background: rgba(82, 119, 139, 0.08); }
+.icon-btn:hover { color: #3a5462; background: rgba(82, 119, 139, 0.08); }
 
-.send-btn { color: #52778b; }
+.send-btn { color: #3b5664; }
 .send-btn:hover {
   color: #30516a;
   background: rgba(82, 119, 139, 0.12);
 }
 
-.mic-btn { color: #7a9eb8; }
+.mic-btn { color: #445968; }
 .mic-btn:hover {
   color: #c04040;
   background: rgba(192, 64, 64, 0.07);
@@ -381,5 +381,19 @@ textarea::placeholder { color: #90aac4; }
 }
 
 .disabled { opacity: 0.5; pointer-events: none; }
+
+/* ── Mobile Responsiveness ── */
+@media (max-width: 768px) {
+  .box {
+    padding: 0.35rem 0.5rem;
+  }
+  textarea {
+    font-size: 16px; /* 16px prevents automatic zoom on iOS Safari */
+    padding: 0.25rem 0.4rem;
+  }
+  .icon-btn {
+    padding: 0.35rem;
+  }
+}
 </style>
 

@@ -362,5 +362,19 @@ const speak = (msg) => {
   0%, 80%, 100% { transform: scale(0.5); opacity: 0.4; }
   40% { transform: scale(1); opacity: 1; }
 }
+
+/* ── Mobile Responsiveness ── */
+@media (max-width: 768px) {
+  .msg {
+    max-width: 92%;
+  }
+  .bubble {
+    padding: 0.75rem 0.9rem;
+    font-size: 0.95rem; /* Keep at least 16px effective equivalent for readability and tap targets */
+  }
+  .action-bar {
+    opacity: 1; /* Always show buttons on mobile since hover is unavailable */
+  }
+}
 </style>
 

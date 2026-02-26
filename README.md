@@ -92,8 +92,8 @@ TAR is fundamentally model-agnostic but is configured by default to utilize a Mi
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-username/tar-ai-researcher.git
-cd tar-ai-researcher
+git clone https://github.com/omm-prakash/The-AI-Researcher.git
+cd The-AI-Researcher
 
 # Create and activate a virtual environment
 python -m venv venv
@@ -121,6 +121,14 @@ npm install
 
 # Start the Vite development server
 npm run dev
+```
+
+### 3. LangGraph Agent Debugging Setup
+
+```bash
+
+# Run the LangGraph
+langgraph dev
 ```
 
 ---

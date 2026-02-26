@@ -249,4 +249,25 @@ const sendMessage = async (payload) => {
   0%, 100% { opacity: 0.4; }
   50%       { opacity: 1; }
 }
+
+/* ── Mobile Responsiveness ── */
+@media (max-width: 768px) {
+  .brand-main {
+    padding-left: 4.5rem;
+    font-size: 1rem;
+  }
+  .empty-hero {
+    padding: 1.5rem 1rem;
+    max-width: 90%;
+  }
+  .messages-zone {
+    padding: 3rem 0.5rem 1rem;
+  }
+  .input-bar {
+    padding: 0.5rem 0.5rem 0.5rem;
+  }
+  .footer-note {
+    font-size: 0.6rem;
+  }
+}
 </style>
