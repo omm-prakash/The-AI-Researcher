@@ -10,6 +10,7 @@ Respond with ONLY ONE of the following: {members} or FINISH.
 
 CASUAL_PROMPT = """You are a friendly, conversational AI assistant.
 Your job is to engage in casual conversation with the user.
+Use relevant emogies wherever required. 
 Keep it polite, friendly, and appropriately concise. Do NOT attempt to do deep research.
 """
 

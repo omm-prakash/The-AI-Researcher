@@ -1,9 +1,10 @@
 import logging
+from src.utils.logger import get_logger
 from src.graph.state import AgentState
 from src.graph.llms import get_llm
 from langchain_core.messages import AIMessage, RemoveMessage, HumanMessage, SystemMessage
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 # ---------------------------------------------------------------------------
 # Layer 1 – fast deterministic keyword filter
@@ -74,7 +75,7 @@ def content_filter(state: AgentState):
     # ------------------------------------------------------------------
     for keyword in BANNED_KEYWORDS:
         if keyword in content:
-            print(f"[Guardrail] Blocked by keyword: '{keyword}'")
+            logger.warning("Guardrail: blocked by keyword '%s'", keyword)
             return _block(last_msg)
 
     # ------------------------------------------------------------------
@@ -87,15 +88,15 @@ def content_filter(state: AgentState):
             HumanMessage(content=content),
         ])
         verdict = response.content.strip().lower()
-        logger.debug("[Guardrail] Safety LLM verdict: %s", verdict)
+        logger.debug("Guardrail: safety LLM verdict = '%s'", verdict)
 
         if verdict.startswith(_UNSAFE_PREFIX):
-            print(f"[Guardrail] Blocked by safety LLM — verdict: '{verdict}'")
+            logger.warning("Guardrail: blocked by safety LLM — verdict: '%s'", verdict)
             return _block(last_msg)
 
     except Exception as exc:
         # If the safety LLM fails, log and fall through (fail open)
-        logger.warning("[Guardrail] Safety LLM unavailable, skipping: %s", exc)
+        logger.warning("Guardrail: safety LLM unavailable, skipping — %s", exc)
 
     # Clean — proceed to the supervisor
     return {"next_agent": "Supervisor"}

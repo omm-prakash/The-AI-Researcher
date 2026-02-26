@@ -9,6 +9,7 @@ def setup_middlewares(app):
     @app.before_request
     def before_request():
         request.start_time = time.time()
+        logger.info('')
         logger.info(f"Received request: {request.method} {request.path}")
 
     @app.after_request

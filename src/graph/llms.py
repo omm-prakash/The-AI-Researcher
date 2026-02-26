@@ -54,7 +54,7 @@ rate_limiter = InMemoryRateLimiter(
 FALLBACK_EXCEPTIONS = (RateLimitError, BadRequestError)
 
 
-def _make_llm(model_name: str, api_key: str) -> ChatGroq:
+def _make_llm(model_name: str, api_key: str, temperature: float = 0.1) -> ChatGroq:
     """Create a ChatGroq instance with fast-fail settings so fallbacks trigger quickly."""
     return ChatGroq(
         model=model_name,
@@ -62,11 +62,11 @@ def _make_llm(model_name: str, api_key: str) -> ChatGroq:
         # 0 retries on the same model — fail fast so with_fallbacks() can try the next one
         max_retries=0,
         rate_limiter=rate_limiter,
-        temperature=0.1,
+        temperature=temperature,
     )
 
 
-def get_llm(category: str, exclude_model: str = None):
+def get_llm(category: str, exclude_model: str = None, temperature: float = 0.1):
     """
     Return a ChatGroq LLM (or a chain with automatic fallbacks) for the given category.
 
@@ -92,10 +92,10 @@ def get_llm(category: str, exclude_model: str = None):
             f"(excluded: {exclude_model})"
         )
 
-    primary = _make_llm(available_models[0], api_key)
+    primary = _make_llm(available_models[0], api_key, temperature=temperature)
     logger.debug("Primary LLM for '%s': %s", category, available_models[0])
 
-    fallbacks = [_make_llm(name, api_key) for name in available_models[1:]]
+    fallbacks = [_make_llm(name, api_key, temperature=temperature) for name in available_models[1:]]
 
     if not fallbacks:
         return primary

@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch, nextTick } from 'vue'
+import { ref, watch, nextTick, onBeforeUnmount } from 'vue'
 
 const props = defineProps({ disabled: Boolean, prefill: String })
 const emit = defineEmits(['send', 'clear-prefill'])
@@ -75,8 +75,10 @@ const removeAttachment = (i) => attachments.value.splice(i, 1)
 
 const submit = () => {
   if ((!text.value.trim() && attachments.value.length === 0) || props.disabled) return
+  stopMic()   // turn off mic before sending
   emit('send', { text: text.value, attachments: [...attachments.value] })
   text.value = ''
+  committedText = ''
   attachments.value = []
   if (textarea.value) textarea.value.style.height = 'auto'
 }
@@ -84,6 +86,75 @@ const submit = () => {
 const onKeyDown = (e) => {
   if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submit() }
 }
+
+// ── Voice input (Web Speech API) ────────────────────────────────────────────
+
+const isListening   = ref(false)
+const micSupported  = 'SpeechRecognition' in window || 'webkitSpeechRecognition' in window
+
+let recognition     = null
+let committedText   = ''   // text before the current interim segment
+
+const buildRecognition = () => {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition
+  const r  = new SR()
+  r.lang            = 'en-US'
+  r.continuous      = true   // keep listening until explicitly stopped
+  r.interimResults  = true   // fire events for partial results in real-time
+
+  r.onstart = () => {
+    isListening.value = true
+    committedText     = text.value  // snapshot current textarea content
+  }
+
+  r.onresult = (event) => {
+    let interim = ''
+    for (let i = event.resultIndex; i < event.results.length; i++) {
+      const t = event.results[i][0].transcript
+      if (event.results[i].isFinal) {
+        committedText += (committedText && !committedText.endsWith(' ') ? ' ' : '') + t
+      } else {
+        interim = t
+      }
+    }
+    // Show committed + live interim in the textarea
+    text.value = committedText + (interim ? (committedText && !committedText.endsWith(' ') ? ' ' : '') + interim : '')
+    nextTick(() => {
+      adjustHeight()
+      textarea.value?.focus()   // keep focus so Enter key sends immediately
+    })
+  }
+
+  r.onerror = (e) => {
+    if (e.error !== 'aborted') console.warn('[Mic] SpeechRecognition error:', e.error)
+    isListening.value = false
+  }
+
+  r.onend = () => {
+    isListening.value = false
+  }
+
+  return r
+}
+
+const startMic = () => {
+  if (!micSupported) return
+  recognition = buildRecognition()
+  recognition.start()
+}
+
+const stopMic = () => {
+  recognition?.stop()
+  isListening.value = false
+}
+
+const toggleMic = () => {
+  if (isListening.value) stopMic()
+  else startMic()
+}
+
+// Clean up on unmount
+onBeforeUnmount(() => stopMic())
 </script>
 
 <template>
@@ -126,7 +197,7 @@ const onKeyDown = (e) => {
         :disabled="disabled"
       />
 
-      <!-- Right: send or mic -->
+      <!-- Right: send OR mic -->
       <button
         v-if="text || attachments.length"
         class="icon-btn send-btn"
@@ -139,7 +210,15 @@ const onKeyDown = (e) => {
           <polygon points="22 2 15 22 11 13 2 9 22 2"/>
         </svg>
       </button>
-      <button v-else class="icon-btn" title="Voice (coming soon)" disabled>
+      <!-- Mic button — always visible when no text, hidden if unsupported -->
+      <button
+        v-else-if="micSupported"
+        class="icon-btn mic-btn"
+        :class="{ recording: isListening }"
+        @click="toggleMic"
+        :title="isListening ? 'Stop recording' : 'Speak your message'"
+        :disabled="disabled"
+      >
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
           <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
           <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
@@ -267,6 +346,27 @@ textarea::placeholder { color: #3a3a4a; }
 .send-btn:hover {
   color: #7a9bff;
   background: rgba(79, 110, 247, 0.1);
+}
+
+.mic-btn {
+  color: #5a5a72;
+}
+.mic-btn:hover {
+  color: #cc5555;
+  background: rgba(200, 60, 60, 0.07);
+}
+
+/* Active recording state — pulsing red ring */
+.mic-btn.recording {
+  color: #e05555;
+  background: rgba(200, 60, 60, 0.1);
+  border-radius: 8px;
+  animation: mic-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes mic-pulse {
+  0%, 100% { box-shadow: 0 0 0 0   rgba(210, 60, 60, 0);    }
+  50%       { box-shadow: 0 0 0 4px rgba(210, 60, 60, 0.25); }
 }
 
 .disabled { opacity: 0.5; pointer-events: none; }

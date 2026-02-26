@@ -7,19 +7,28 @@ import 'katex/dist/katex.min.css'
 const props = defineProps({
   messages: Array,
   isWaiting: Boolean,
+  autoListen: { type: Boolean, default: true },
 })
 
 const emit = defineEmits(['reask'])
 
 const bottomAnchor = ref(null)
 const copiedId = ref(null)
+const speakingId = ref(null)   // id of the message currently being spoken
 
-// Scroll to bottom whenever messages or waiting state changes
+// Scroll to bottom & auto-speak when messages or waiting state changes
 watch(
   [() => props.messages.length, () => props.isWaiting],
-  async () => {
+  async ([newLen], [oldLen]) => {
     await nextTick()
     bottomAnchor.value?.scrollIntoView({ behavior: 'smooth', block: 'end' })
+
+    // Auto-speak the newest assistant message if autoListen is on
+    const added = newLen > (oldLen ?? 0)
+    if (added && props.autoListen && !props.isWaiting) {
+      const last = props.messages[props.messages.length - 1]
+      if (last?.role === 'assistant') speak(last)
+    }
   }
 )
 
@@ -67,6 +76,47 @@ const copyContent = async (msg) => {
 const reask = (msg) => {
   emit('reask', msg.content)
 }
+
+// ── Text-to-speech ─────────────────────────────────────────────────────────
+
+/** Strip HTML tags and markdown symbols so TTS reads clean prose. */
+const plainText = (content) => {
+  let text = (content || '')
+    .replace(/<[^>]+>/g, ' ')               // html tags
+    .replace(/```[\s\S]*?```/g, '')         // fenced code blocks
+    .replace(/`[^`]+`/g, '')               // inline code
+    .replace(/!?\[([^\]]+)\]\([^)]*\)/g, '$1') // links/images → label
+    .replace(/[#*_~>|]+/g, ' ')             // md markers
+    // strip emojis (covers most Unicode emoji ranges)
+    .replace(/[\u{1F000}-\u{1FFFF}\u{2600}-\u{27FF}\u{FE00}-\u{FEFF}\u{1F900}-\u{1F9FF}\u{1FA00}-\u{1FA9F}]/gu, '')
+    .replace(/\s{2,}/g, ' ')               // collapse whitespace
+    .trim()
+  return text
+}
+
+const speak = (msg) => {
+  if (!('speechSynthesis' in window)) return
+
+  // Toggle: if this message is already playing, stop it
+  if (speakingId.value === msg.id) {
+    window.speechSynthesis.cancel()
+    speakingId.value = null
+    return
+  }
+
+  window.speechSynthesis.cancel()  // stop any previous
+
+  const utterance = new SpeechSynthesisUtterance(plainText(msg.content))
+  utterance.rate  = 1.0
+  utterance.pitch = 1.0
+  utterance.lang  = 'en-US'
+
+  utterance.onstart = () => { speakingId.value = msg.id }
+  utterance.onend   = () => { speakingId.value = null }
+  utterance.onerror = () => { speakingId.value = null }
+
+  window.speechSynthesis.speak(utterance)
+}
 </script>
 
 <template>
@@ -100,6 +150,29 @@ const reask = (msg) => {
         <button v-if="msg.role === 'user'" class="action-btn" @click="reask(msg)" title="Re-ask this question">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
           Re-ask
+        </button>
+        <!-- Listen: assistant messages only -->
+        <button
+          v-if="msg.role === 'assistant'"
+          class="action-btn"
+          :class="{ speaking: speakingId === msg.id }"
+          @click="speak(msg)"
+          :title="speakingId === msg.id ? 'Stop' : 'Listen'"
+        >
+          <!-- Stop icon when speaking -->
+          <template v-if="speakingId === msg.id">
+            <svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
+            Stop
+          </template>
+          <!-- Speaker icon when idle -->
+          <template v-else>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+              <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
+              <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
+            </svg>
+            Listen
+          </template>
         </button>
       </div>
     </div>
@@ -200,6 +273,18 @@ const reask = (msg) => {
   color: #a0a0d0;
   background: rgba(255,255,255,0.07);
   border-color: rgba(255,255,255,0.14);
+}
+
+.action-btn.speaking {
+  color: #7a9bff;
+  border-color: rgba(122, 155, 255, 0.4);
+  background: rgba(122, 155, 255, 0.08);
+  animation: pulse-tts 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse-tts {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(122, 155, 255, 0); }
+  50%       { box-shadow: 0 0 0 3px rgba(122, 155, 255, 0.18); }
 }
 
 /* ── Attachments ─────────────────────────────────────────────────────── */

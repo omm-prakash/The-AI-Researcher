@@ -57,6 +57,9 @@ const handleReask = (content) => {
 }
 
 const activeController = ref(null)   // tracks in-flight fetch so it can be cancelled
+const autoListen = ref(true)         // auto-speak new assistant responses
+
+const toggleAutoListen = () => { autoListen.value = !autoListen.value }
 
 const cancelRequest = () => {
   if (activeController.value) {
@@ -143,10 +146,12 @@ const sendMessage = async (payload) => {
     <ConversationSidebar
       :conversations="conversations"
       :activeId="activeId"
+      :autoListen="autoListen"
       @select="selectConversation"
       @new="newConversation"
       @delete="deleteConversation"
       @rename="renameConversation"
+      @toggle-auto-listen="toggleAutoListen"
     />
 
     <div class="chat-pane">
@@ -173,6 +178,7 @@ const sendMessage = async (payload) => {
           <ChatWindow
             :messages="activeConv?.messages || []"
             :isWaiting="activeConv?.isWaiting || false"
+            :autoListen="autoListen"
             @reask="handleReask"
           />
         </div>

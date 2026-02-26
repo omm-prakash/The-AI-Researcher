@@ -1,12 +1,12 @@
 import os
-import logging
 import base64
 from langchain_groq import ChatGroq
 from langchain_core.messages import HumanMessage
 from src.graph.state import AgentState
 from src.graph.prompts import IMAGE_AGENT_PROMPT
+from src.utils.logger import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 # Vision models to try in order — scout is widely validated, maverick as fallback
 VISION_MODELS = [
@@ -30,7 +30,7 @@ def image_agent_node(state: AgentState):
     multimodal content delivery), then stores the analysis in
     state['attachment_context'] for the Researcher.
     """
-    print("\n[ImageAgent] Starting image analysis...\n")
+    logger.info("── ImageAgent ── starting image analysis")
 
     attachment_path = state.get("attachment_path", "")
     messages = state.get("messages", [])
@@ -43,14 +43,14 @@ def image_agent_node(state: AgentState):
             break
 
     if not attachment_path or not os.path.exists(attachment_path):
-        print(f"[ImageAgent] File not found at: {attachment_path}")
+        logger.warning("ImageAgent: file not found at '%s'", attachment_path)
         return {"attachment_context": "Image file could not be found or read."}
 
     try:
         with open(attachment_path, "rb") as image_file:
             encoded_string = base64.b64encode(image_file.read()).decode("utf-8")
     except Exception as e:
-        print(f"[ImageAgent] Failed to read image: {e}")
+        logger.error("ImageAgent: failed to read image: %s", e, exc_info=True)
         return {"attachment_context": f"Failed to read image file: {str(e)}"}
 
     ext = attachment_path.lower().rsplit(".", 1)[-1]
@@ -63,7 +63,7 @@ def image_agent_node(state: AgentState):
 
     for model in VISION_MODELS:
         try:
-            print(f"[ImageAgent] Trying vision model: {model}")
+            logger.info("ImageAgent: trying vision model '%s'", model)
             # Use ChatGroq directly — NOT via get_llm() — to avoid with_fallbacks()
             # wrapper transforming the multimodal HumanMessage content.
             llm = ChatGroq(model=model, api_key=api_key, max_retries=0)
@@ -80,16 +80,16 @@ def image_agent_node(state: AgentState):
             )
             response = llm.invoke([message])
             extracted = response.content.strip()
-            print(f"[ImageAgent] Success with model: {model}\n")
+            logger.info("ImageAgent: success with model '%s'", model)
             break
         except Exception as e:
-            print(f"[ImageAgent] Model {model} failed ({type(e).__name__}: {e}), trying next...")
+            logger.warning("ImageAgent: model '%s' failed (%s: %s) — trying next", model, type(e).__name__, e)
             last_error = e
             continue
 
     if extracted is None:
         error_msg = str(last_error) if last_error else "All vision models failed"
-        print(f"[ImageAgent] All vision models exhausted: {error_msg}")
+        logger.error("ImageAgent: all vision models exhausted — %s", error_msg)
         return {"attachment_context": f"Image analysis failed: {error_msg}"}
 
     context_block = (
@@ -99,5 +99,5 @@ def image_agent_node(state: AgentState):
         f"{extracted}"
     )
 
-    print("[ImageAgent] Analysis complete.\n")
+    logger.info("ImageAgent: analysis complete → attachment_context set")
     return {"attachment_context": context_block}

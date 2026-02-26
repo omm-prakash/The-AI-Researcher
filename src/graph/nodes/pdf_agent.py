@@ -4,6 +4,9 @@ from src.graph.state import AgentState
 from src.graph.prompts import PDF_AGENT_PROMPT
 from src.graph.llms import get_pdf_llm
 from src.utils.pdf import parse_pdf
+from src.utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 def pdf_agent_node(state: AgentState):
@@ -14,7 +17,7 @@ def pdf_agent_node(state: AgentState):
     Uses Gemini 2.5 Flash Lite (up to 25 000 output tokens) so the entire PDF
     can be processed in a single LLM call — no chunking required.
     """
-    print("\n[PDFAgent] Starting PDF extraction...\n")
+    logger.info("── PDFAgent ── starting PDF extraction")
 
     attachment_path = state.get("attachment_path", "")
     messages = state.get("messages", [])
@@ -27,7 +30,7 @@ def pdf_agent_node(state: AgentState):
             break
 
     if not attachment_path or not os.path.exists(attachment_path):
-        print(f"[PDFAgent] File not found at: {attachment_path}")
+        logger.warning("PDFAgent: file not found at '%s'", attachment_path)
         return {"attachment_context": "PDF file could not be found or read."}
 
     try:
@@ -35,16 +38,16 @@ def pdf_agent_node(state: AgentState):
             file_bytes = f.read()
         full_text = parse_pdf(file_bytes)
     except Exception as e:
-        print(f"[PDFAgent] Failed to parse PDF: {e}")
+        logger.error("PDFAgent: failed to parse PDF: %s", e, exc_info=True)
         return {"attachment_context": f"Failed to parse PDF: {str(e)}"}
 
     # Cap input to 20 000 characters to stay within context limits
     MAX_CHARS = 20000
     if len(full_text) > MAX_CHARS:
-        print(f"[PDFAgent] PDF text truncated from {len(full_text)} to {MAX_CHARS} characters.")
+        logger.warning("PDFAgent: text truncated from %d to %d chars", len(full_text), MAX_CHARS)
         full_text = full_text[:MAX_CHARS]
 
-    print(f"[PDFAgent] PDF parsed — {len(full_text)} characters. Calling Gemini 2.5 Flash Lite...")
+    logger.info("PDFAgent: %d chars ready — calling Gemini 2.5 Flash Lite", len(full_text))
 
     try:
         llm = get_pdf_llm()
@@ -54,7 +57,7 @@ def pdf_agent_node(state: AgentState):
         response = chain.invoke({"user_query": user_query, "pdf_content": full_text})
         extracted = response.content.strip()
     except Exception as e:
-        print(f"[PDFAgent] LLM call failed: {e}")
+        logger.error("PDFAgent: LLM extraction failed: %s", e, exc_info=True)
         return {"attachment_context": f"PDF was parsed but LLM extraction failed: {str(e)}"}
 
     if not extracted:
@@ -66,5 +69,5 @@ def pdf_agent_node(state: AgentState):
         f"{extracted}"
     )
 
-    print("[PDFAgent] Extraction complete.\n")
+    logger.info("PDFAgent: extraction complete → attachment_context set")
     return {"attachment_context": context_block}

@@ -4,9 +4,10 @@ import { ref } from 'vue'
 const props = defineProps({
   conversations: Array,
   activeId: String,
+  autoListen: { type: Boolean, default: true },
 })
 
-const emit = defineEmits(['select', 'new', 'delete', 'rename'])
+const emit = defineEmits(['select', 'new', 'delete', 'rename', 'toggle-auto-listen'])
 
 const collapsed = ref(false)
 const editingId = ref(null)
@@ -78,7 +79,29 @@ const cancelRename = () => { editingId.value = null }
         </li>
       </ul>
 
-      <footer class="sidebar-footer">Double-click to rename</footer>
+      <footer class="sidebar-footer">
+        <span class="footer-hint">Double-click to rename</span>
+
+        <!-- Auto-listen toggle -->
+        <button
+          class="auto-listen-btn"
+          :class="{ active: autoListen }"
+          @click="emit('toggle-auto-listen')"
+          :title="autoListen ? 'Auto-listen ON — click to turn off' : 'Auto-listen OFF — click to turn on'"
+        >
+          <!-- Speaker wave icon -->
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+            <path v-if="autoListen" d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
+            <path v-if="autoListen" d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
+            <!-- X mark when off -->
+            <line v-if="!autoListen" x1="23" y1="9" x2="17" y2="15" stroke-width="2"/>
+            <line v-if="!autoListen" x1="17" y1="9" x2="23" y2="15" stroke-width="2"/>
+          </svg>
+          <span>Auto-listen</span>
+          <span class="pill" :class="autoListen ? 'on' : 'off'">{{ autoListen ? 'ON' : 'OFF' }}</span>
+        </button>
+      </footer>
     </template>
 
   </aside>
@@ -225,9 +248,62 @@ const cancelRename = () => { editingId.value = null }
 }
 
 .sidebar-footer {
-  padding: 0.6rem 0.9rem;
+  padding: 0.6rem 0.9rem 0.75rem;
   font-size: 0.64rem;
   color: #2e2e3a;
   flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
 }
+
+.footer-hint { color: #2e2e3a; }
+
+.auto-listen-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  width: 100%;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 8px;
+  padding: 0.45rem 0.65rem;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.75rem;
+  color: #5a5a72;
+  transition: background 0.18s, border-color 0.18s, color 0.18s;
+}
+
+.auto-listen-btn svg {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
+.auto-listen-btn span:nth-child(2) { flex: 1; text-align: left; }
+
+.auto-listen-btn:hover {
+  background: rgba(255,255,255,0.06);
+  border-color: rgba(255,255,255,0.12);
+  color: #9090b8;
+}
+
+.auto-listen-btn.active {
+  color: #7a9bff;
+  border-color: rgba(122,155,255,0.3);
+  background: rgba(122,155,255,0.07);
+}
+
+.pill {
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  padding: 0.1rem 0.4rem;
+  border-radius: 20px;
+  flex-shrink: 0;
+}
+
+.pill.on  { background: rgba(122,155,255,0.18); color: #7a9bff; }
+.pill.off { background: rgba(255,255,255,0.06); color: #4a4a5e; }
 </style>

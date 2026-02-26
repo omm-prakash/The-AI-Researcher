@@ -4,6 +4,9 @@ from langchain_core.prompts import ChatPromptTemplate
 from src.graph.state import AgentState
 from src.graph.prompts import AUDIO_AGENT_PROMPT
 from src.graph.llms import get_llm
+from src.utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 def audio_agent_node(state: AgentState):
@@ -12,7 +15,7 @@ def audio_agent_node(state: AgentState):
     Groq Whisper and then analyzes the transcript using the logic-reasoning LLM,
     writing its findings to state['attachment_context'] for the Researcher.
     """
-    print("\n[AudioAgent] Starting audio transcription and analysis...\n")
+    logger.info("── AudioAgent ── starting audio transcription and analysis")
 
     attachment_path = state.get("attachment_path", "")
     messages = state.get("messages", [])
@@ -25,14 +28,14 @@ def audio_agent_node(state: AgentState):
             break
 
     if not attachment_path or not os.path.exists(attachment_path):
-        print(f"[AudioAgent] File not found at: {attachment_path}")
+        logger.warning("AudioAgent: file not found at '%s'", attachment_path)
         return {"attachment_context": "Audio file could not be found or read."}
 
     # Step 1: Transcribe audio
     try:
         client = Groq()
         filename = os.path.basename(attachment_path)
-        print(f"[AudioAgent] Transcribing '{filename}' with Whisper...")
+        logger.info("AudioAgent: transcribing '%s' with Whisper", filename)
         with open(attachment_path, "rb") as audio_file:
             transcription = client.audio.transcriptions.create(
                 file=(filename, audio_file.read()),
@@ -40,9 +43,9 @@ def audio_agent_node(state: AgentState):
                 response_format="text",
             )
         full_transcript = transcription
-        print(f"[AudioAgent] Transcription complete. Length: {len(full_transcript)} chars")
+        logger.info("AudioAgent: transcription complete — %d chars", len(full_transcript))
     except Exception as e:
-        print(f"[AudioAgent] Transcription failed: {e}")
+        logger.error("AudioAgent: transcription failed: %s", e, exc_info=True)
         return {"attachment_context": f"Audio transcription failed: {str(e)}"}
 
     # Step 2: Chunk and analyze the transcript
@@ -55,7 +58,7 @@ def audio_agent_node(state: AgentState):
 
     chunk_results = []
     for i, chunk in enumerate(chunks):
-        print(f"[AudioAgent] Analyzing chunk {i + 1}/{len(chunks)}")
+        logger.debug("AudioAgent: analyzing chunk %d/%d", i + 1, len(chunks))
         response = chain.invoke({"user_query": user_query, "audio_content": chunk})
         content = response.content.strip()
         if content.lower() not in ("skipped, not relevant.", "skipped, not relevant"):
@@ -69,5 +72,5 @@ def audio_agent_node(state: AgentState):
         f"Focused Analysis:\n{extracted}"
     )
 
-    print("[AudioAgent] Analysis complete.\n")
+    logger.info("AudioAgent: analysis complete → attachment_context set")
     return {"attachment_context": context_block}

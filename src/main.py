@@ -2,13 +2,17 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+from src.utils.logger import setup_logging, get_logger
+setup_logging()   # must be first — before any other src imports
+
 from flask import Flask, request, jsonify
 from src.graph.builder import build_graph
 from src.database import get_postgres_setup
 from src.middlewares import setup_middlewares
 from langchain_core.messages import HumanMessage
-
 from flask_cors import CORS
+
+logger = get_logger(__name__)
 
 app = Flask(__name__)
 # Enable CORS for the local Vite frontend
@@ -30,7 +34,7 @@ def chat_endpoint():
     # print('\n\nrequest', request)
     if request.is_json:
         data = request.get_json()
-        print(data)
+        logger.debug("/chat JSON payload: thread_id=%s message=%s", data.get('thread_id'), data.get('message', '')[:80])
         thread_id = data.get("thread_id")
         message_text = data.get("message")
         files = []
@@ -74,9 +78,7 @@ def chat_endpoint():
         graph = builder.compile(checkpointer=checkpointer, store=store)
         
         config = {"configurable": {"thread_id": thread_id}}
-        print()
-        print(config, message_text)
-        print()
+        logger.info("/chat thread=%s  attachment_type=%s", thread_id, attachment_type)
         # Start execution graph
         input_message = HumanMessage(content=message_text)
         
@@ -92,13 +94,14 @@ def chat_endpoint():
         
         if final_state and 'error_response' in final_state and final_state["error_response"]:
             final_response = final_state["error_response"]
+            logger.warning("/chat returning error_response for thread=%s", thread_id)
         elif final_state and "messages" in final_state and len(final_state["messages"]) > 0:
             final_response = final_state["messages"][-1].content
+            logger.info("/chat response ready for thread=%s (%d chars)", thread_id, len(final_response))
         else:
             final_response = "No response generated."
+            logger.warning("/chat no response generated for thread=%s", thread_id)
 
-        # NOTE: attachment_type is passed fresh every request from the frontend,
-        # so there is no need to write it back to the checkpoint here.
         return jsonify({"response": final_response, "thread_id": thread_id})
 
     # except Exception as e:
