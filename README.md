@@ -1,252 +1,139 @@
-# 🤖 Agentic Research Assistant
+# TAR: The AI Researcher
 
-A production-ready, **multi-agent AI research assistant** built with **LangGraph** and **Flask**. Given any query, it autonomously gathers information from the web, processes attachments (PDFs, images, audio), synthesizes findings, and drafts a comprehensive report — all persisted natively in **PostgreSQL**.
+> **High-Level Value Prop**: TAR (The AI Researcher) is an advanced, multi-agent AI system designed to conduct deep, autonomous internet research and process multi-modal attachments (PDFs, Images, Audio). By leveraging a robust, event-driven graph architecture, TAR provides highly accurate, context-aware, and thoroughly researched responses, minimizing hallucinations and maximizing depth.
 
-> Designed as an end-to-end reference implementation showcasing modern agentic AI patterns: context engineering, multi-agent orchestration, stateful memory, guardrails, and multimodal file handling.
-
----
-
-## ✨ Features
-
-| Feature | Description |
-|---|---|
-| 🧠 **Multi-Agent Orchestration** | Supervisor routes tasks to specialized Researcher, Writer, and Casual subagents via LangGraph |
-| 🛡️ **Guardrail Node** | Content moderation filter runs before any agent execution |
-| 🔍 **Web Search** | Researcher agent performs live DuckDuckGo / Tavily internet searches |
-| 📎 **Multimodal Attachments** | Supports PDF, image (JPG/PNG/WebP), and audio (MP3/WAV/M4A) file uploads |
-| 🗄️ **Persistent Memory** | Native PostgreSQL checkpointing stores full conversation thread history |
-| 💬 **Session Management** | Per-thread conversation state using `thread_id` |
-| 🌐 **Vue 3 Frontend** | Lightweight chat interface built with Vue 3 + Vite |
-| ⚡ **Context Engineering** | Dynamic chunking prevents LLM context-window overflow |
-| 🔧 **Flask Middlewares** | Request logging, latency tracking, and extensible moderation hooks |
+<!-- ![alt text](ref-images/frontend.png) -->
+<p align="center"><img src="ref-images/frontend.png" width="800"></p>
 
 ---
 
-## 🏗️ Architecture
+## 🏗️ System Architecture
 
-```
-User Request
-     │
-     ▼
-┌──────────┐
-│ Guardrail│  ← Content moderation
-└──────────┘
-     │
-     ▼
-┌────────────┐
-│ Supervisor │  ← Routing decision
-└────────────┘
-     │
-     ├──────────────────┐
-     ▼                  ▼
-┌────────────┐    ┌────────┐
-│ Researcher │    │ Casual │
-└────────────┘    └────────┘
-     │
-     ├── [Tool Call?] ──► ┌───────┐
-     │                    │ Tools │ ← Web search, PDF, Image, Audio
-     │                    └───────┘
-     │                        │
-     │ ◄──────────────────────┘
-     ▼
-┌────────┐
-│ Writer │  ← Synthesizes final report
-└────────┘
-     │
-     ▼
- Response
-```
+TAR employs a **modular frontend-backend separation** to ensure scalability, maintainability, and clear boundaries of concern.
 
-### Agent Roles
-
-- **Guardrail** — First-pass content filter; blocks harmful or off-topic inputs before they reach any agent.
-- **Supervisor** — Decides whether to route to `Researcher` (complex queries), `Casual` (simple chat), or terminate.
-- **Researcher** — Queries the web and processes any uploaded files using tool calls.
-- **Writer** — Reads the researcher's gathered facts and synthesizes a polished, structured report.
-- **Casual** — Handles conversational messages that don't require research.
+- **Frontend**: A highly responsive, single-page application built with **Vue 3** and **Vite**. It provides a real-time conversational interface designed for low-latency streaming and seamless multi-modal file uploads.
+- **Backend / Engine**: A **Flask-based API** acting as the gateway to our core reasoning engine. The engine itself is an **event-driven state machine** orchestrated via **LangGraph**.
+- **State & Persistence**: Short-term state is managed in-memory as the graph executes, while long-term conversational memory and checkpointing are persisted to **PostgreSQL** (via `langgraph-checkpoint-postgres`), ensuring a fault-tolerant and restorable user session.
 
 ---
 
-## 📁 Project Structure
+## 🧠 Agentic Workflow & Reasoning
 
-```
-agent-project/
-├── src/
-│   ├── main.py               # Flask app entry point & /chat endpoint
-│   ├── database.py           # PostgreSQL checkpointer & store setup
-│   ├── middlewares.py        # Request logging & latency middleware
-│   ├── graph/
-│   │   ├── builder.py        # LangGraph StateGraph construction
-│   │   ├── state.py          # AgentState TypedDict definition
-│   │   ├── llms.py           # LLM model configurations (Groq)
-│   │   ├── prompts.py        # Role-based system prompts
-│   │   └── nodes/
-│   │       ├── supervisor.py # Routing supervisor node
-│   │       ├── researcher.py # Web search & file analysis node
-│   │       ├── writer.py     # Report synthesis node
-│   │       ├── casual.py     # Conversational node
-│   │       └── guardrail.py  # Content moderation node
-│   ├── tools/
-│   │   ├── search.py         # DuckDuckGo / Tavily internet search tool
-│   │   ├── read_pdf.py       # PDF extraction tool (LLM-assisted)
-│   │   ├── read_image.py     # Image understanding tool (vision LLM)
-│   │   └── read_audio.py     # Audio transcription & summarization tool
-│   └── utils/
-│       └── context.py        # Context chunking & management utilities
-├── frontend/                 # Vue 3 + Vite chat UI
-│   ├── src/
-│   │   ├── App.vue
-│   │   ├── components/
-│   │   └── style.css
-│   └── package.json
-├── storage/                  # Uploaded files (per thread_id)
-├── tests/                    # Pytest test suite
-├── langgraph.json            # LangGraph deployment config
-├── requirements.txt
-└── .env                      # Environment variables (not committed)
-```
+The core intelligence of TAR relies on a sophisticated Multi-Agent architecture. Unlike linear chains, TAR functions as an autonomous research team, exhibiting continuous evaluation, tool use, and reflection.
+
+<p align="center">
+<img src="ref-images/workflow.png" >
+</p>
+
+### 1. Planning & Routing (The Supervisor)
+
+- When a request enters the system, it is first evaluated by a **Guardrail** node for safety.
+- If approved, the **Supervisor Agent** (powered by Logic/Reasoning LLMs) takes over. The Supervisor analyzes the intent and dynamically determines the optimal execution path.
+- If the request involves casual conversation, it routes to a **Casual Agent**.
+- If it requires deep research, it invokes the **Researcher Agent**.
+
+**Multi-modal Interception:** Crucially, if the payload contains attachments (PDF, Image, Audio), the system circumvents text-only routing and immediately assigns the request to a **Specialist Subagent** (PDFAgent, ImageAgent, or AudioAgent) to preemptively extract context before research begins.
+
+### 2. Tool Usage (The Researcher)
+
+The **Researcher Agent** is the workhorse of the graph. It is bound to multiple tools:
+
+- **Web Search**: Primary tool for AI-optimized, deterministic internet searches.
+- **Web Extract**: Used selectively to scrape and parse full raw content from targeted, high-value URLs.
+- *Fallback Mechanism*: If Tavily fails or hits rate limits, the agent autonomously falls back to a **DuckDuckGo** search integration to ensure fault tolerance.
+
+### 3. Reflection & Looping
+
+TAR's execution is cyclical rather than linear. The Researcher Agent evaluates the results from its tool calls. If the scraped data is insufficient, it formulates new queries and loops back to the search tools. Once it confidently holds the required knowledge, the internal state shifts and hands off to the **Writer Agent**, which synthesizes the raw data into a polished, definitive answer.
+
+### 4. Memory Management
+
+Context is securely maintained across turns using **LangGraph Postgres Checkpointers**. Before reaching the text-centric LLMs, older conversational history is automatically trimmed, and multi-modal elements are dynamically flattened to strictly manage context windows and limit token expenditure.
 
 ---
 
 ## 🛠️ Tech Stack
 
-| Layer | Technology |
-|---|---|
-| **Backend** | Python 3.11+, Flask, Flask-CORS |
-| **AI Framework** | LangChain, LangGraph |
-| **LLM Provider** | Groq (`llama3-8b-8192`, `llama3-70b-8192`) |
-| **Web Search** | DuckDuckGo Search, Tavily |
-| **State Persistence** | PostgreSQL via `langgraph-checkpoint-postgres` + `psycopg` |
-| **Frontend** | Vue 3, Vite, Marked.js |
-| **Deployment** | Hypercorn (ASGI), LangGraph Cloud compatible |
+| Technology | Purpose | Selection Rationale |
+| :--- | :--- | :--- |
+| **LangGraph** | Orchestration & Workflow | Chosen for its cyclic state-machine capabilities, enabling true multi-agent looping and reflection. |
+| **LangChain** | LLM Abstraction | Selected for standardized tool-binding and dynamic model fallback integrations. |
+| **Flask + Gunicorn** | Backend API | Chosen for rapid prototyping, robust middleware support, and lightweight deployment. |
+| **PostgreSQL** | Memory & State Persistence | Selected for highly concurrent, transactional guarantees required for LangGraph Checkpointing. |
+| **Vue 3 + Vite** | Frontend Interface | Chosen for its reactive virtual DOM footprint, enabling fast-loading, highly interactive user experiences. |
+| **Tavily API** | Search Infrastructure | Selected over standard SERP APIs for its ability to return LLM-optimized search context and raw HTML extraction. |
 
 ---
 
-## 🚀 Getting Started
+## 🤖 Default LLMs and Model Routing
 
-### Prerequisites
+TAR is fundamentally model-agnostic but is configured by default to utilize a Mixture of Experts (MoE) approach via Groq and Google GenAI. Models are categorized by their specific strengths:
 
-- Python 3.11+
-- Node.js 18+ (for frontend)
-- A running **PostgreSQL** instance
-- A [Groq API key](https://console.groq.com/)
+- **Logic & Reasoning** (e.g., `qwen3-32b`, `llama-3.3-70b`): Used by the **Supervisor Agent** to break down tasks and make routing decisions, and acts as a fallback for analyzing complex PDF chunks.
+- **Agentic Systems** (e.g., `gpt-oss-20b`, `kimi-k2-instruct`): Leveraged by the **Researcher Agent** for their superior tool-calling and function-binding capabilities.
+- **PDF Understanding** (`gemini-2.5-flash-lite`): Powered by Google GenAI. Selected for its rapid processing speed and massive 20k+ token context window, enabling entire document ingestion in one pass.
+- **Audio & Voice** (e.g., `whisper-large-v3-turbo`): Chosen for industry-leading transcription accuracy by the Audio Agent.
+- **Safety & Security** (e.g., `llama-prompt-guard-2`, `gpt-oss-safeguard`): Utilized strictly by the Guardrail edge node to classify prompts and prevent prompt injection or policy violations.
 
-### 1. Clone the repository
+---
+
+## 🚀 Key Features
+
+- **Multi-Agent Orchestration**: Specialized agents (Supervisor, Researcher, Writer) handling discrete tasks for massively improved output quality.
+- **Multi-Modal Document Ingestion**: Intelligent, format-specific subagents capable of parsing PDFs (via primary extraction with Gemini and fallback chunking reasoning), Images, and Audio files.
+- **Self-Healing Tool Execution**: Automatic failover from Tavily Search to DuckDuckGo if primary endpoints fail, ensuring 100% uptime on research paths.
+- **Persistent Conversational Memory**: Thread-based state management leveraging PostgreSQL allows users to resume deep-dive research sessions across multiple days.
+
+---
+
+## 💻 Getting Started
+
+### 1. Backend Setup
 
 ```bash
-git clone https://github.com/your-username/agent-project.git
-cd agent-project
-```
+# Clone the repository
+git clone https://github.com/your-username/tar-ai-researcher.git
+cd tar-ai-researcher
 
-### 2. Set up the Python environment
-
-```bash
+# Create and activate a virtual environment
 python -m venv venv
-source venv/bin/activate      # Windows: venv\Scripts\activate
+source venv/bin/activate  # On Windows use: venv\Scripts\activate
+
+# Install requirements
 pip install -r requirements.txt
-```
 
-### 3. Configure environment variables
+# Configure Environment Variables
+cp .env.example .env
+# Fill in your GROQ_API_KEY, TAVILY_API_KEY, GOOGLE_API_KEY, and POSTGRES_URL inside .env
 
-Create a `.env` file in the project root:
-
-```env
-# LLM
-GROQ_API_KEY=your_groq_api_key
-
-# PostgreSQL (for state persistence)
-DB_URI=postgresql://user:password@localhost:5432/agent_db
-
-# Optional: Tavily (alternative web search)
-TAVILY_API_KEY=your_tavily_api_key
-```
-
-### 4. Start the Flask backend
-
-```bash
+# Run the Flask API
 python src/main.py
 ```
 
-The API will be available at `http://localhost:8000`.
-
-### 5. Start the Vue frontend (optional)
+### 2. Frontend Setup
 
 ```bash
+# Navigate to the frontend directory
 cd frontend
+
+# Install dependencies
 npm install
+
+# Start the Vite development server
 npm run dev
 ```
 
-The chat UI will be available at `http://localhost:5173`.
-
 ---
 
-## 🔌 API Reference
+## 🗺️ Future Roadmap
 
-### `POST /chat`
+- **Deployement**:
+    1. Dockerize the application.
+    2. User authentication and security.
+    3. Deploy the application to a cloud platform (e.g., AWS, GCP, Azure).
+    4. Set up a CI/CD pipeline for automated deployment.
+- **Vector Database Integration (RAG)**: Implementing Pinecone to provide persistent, long-term memory mapping of past research sessions, turning TAR into a personalized second brain.
+- **Streaming LLM Responses**: Upgrading the frontend and graph invocation to stream tokens back to the client in real-time, reducing perceived latency.
+- **Containerization & Kubernetes**: Dockerizing the application and writing Helm charts to scale the processing worker nodes in a Kubernetes cluster horizontally.
 
-Interact with the multi-agent system. Supports both JSON and multipart form data (for file uploads).
-
-**JSON Request:**
-
-```http
-POST http://localhost:8000/chat
-Content-Type: application/json
-
-{
-  "thread_id": "session_001",
-  "message": "What are the latest advancements in solid-state batteries?"
-}
-```
-
-**Multipart Request (with file attachment):**
-
-```
-POST http://localhost:8000/chat
-Content-Type: multipart/form-data
-
-thread_id=session_001
-message=Summarize this document
-files=@/path/to/document.pdf
-```
-
-**Response:**
-
-```json
-{
-  "response": "## Solid-State Batteries: 2024 Advancements\n\n...",
-  "thread_id": "session_001"
-}
-```
-
-### Supported Attachment Types
-
-| Extension | Type | Handling |
-|---|---|---|
-| `.pdf` | PDF | LLM-assisted text extraction |
-| `.jpg`, `.jpeg`, `.png`, `.gif`, `.webp` | Image | Vision LLM analysis |
-| `.mp3`, `.wav`, `.ogg`, `.m4a` | Audio | Transcription & summarization |
-
----
-
-## 🧪 Running Tests
-
-```bash
-pytest tests/
-```
-
----
-
-## 🗺️ Roadmap
-
-- [ ] Streaming responses via Server-Sent Events (SSE)
-- [ ] LangGraph Studio deployment support
-- [ ] Additional tool integrations (e.g., code execution, Wikipedia)
-- [ ] User authentication and multi-user session management
-- [ ] Docker Compose setup for one-command deployment
-
----
-
-## 📄 License
-
-This project is open-source and available under the [MIT License](LICENSE).
+*I am activly working on the project, will change the README.md file as the project progresses.*
