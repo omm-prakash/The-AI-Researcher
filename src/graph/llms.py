@@ -26,10 +26,10 @@ models_dict = {
         "canopylabs/orpheus-arabic-saudi"   # Context: 128k
     ],
     "safety-security": [
-        "meta-llama/llama-guard-4-12b",     # Context: 131k
-        "meta-llama/llama-prompt-guard-2-22m", # Context: 4k (Classifier)
+        "openai/gpt-oss-safeguard-20b",     # Context: 128k
         "meta-llama/llama-prompt-guard-2-86m", # Context: 4k (Classifier)
-        "openai/gpt-oss-safeguard-20b"      # Context: 128k
+        "meta-llama/llama-prompt-guard-2-22m", # Context: 4k (Classifier)
+        "meta-llama/llama-guard-4-12b",     # Context: 131k
     ]
 }
 
@@ -118,8 +118,8 @@ def get_pdf_llm() -> ChatGoogleGenerativeAI:
     """
     Return a Gemini 2.5 Flash Lite instance tuned for PDF understanding.
 
-    Model  : gemini-2.5-flash-lite-preview-06-17
-    Tokens : up to 25 000 output tokens
+    Model  : gemini-2.5-flash-lite
+    Tokens : cap at 20 000 max context tokens
     Key    : GOOGLE_API_KEY environment variable
     """
     api_key = os.getenv("GOOGLE_API_KEY")
@@ -130,8 +130,9 @@ def get_pdf_llm() -> ChatGoogleGenerativeAI:
         )
 
     return ChatGoogleGenerativeAI(
-        model="gemini-2.5-flash-lite-preview-06-17",
+        model="gemini-2.5-flash-lite",
         google_api_key=api_key,
         max_output_tokens=20000,
         temperature=0.1,
+        max_retries=0, # Fail fast so we can trigger the chunk-wise fallback
     )

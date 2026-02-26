@@ -100,4 +100,5 @@ def image_agent_node(state: AgentState):
     )
 
     logger.info("ImageAgent: analysis complete → attachment_context set")
+    print('\n\nattachment_context', context_block)
     return {"attachment_context": context_block}

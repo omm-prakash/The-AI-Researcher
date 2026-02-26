@@ -29,12 +29,22 @@ const adjustHeight = () => {
   }
 }
 
-// Accepted MIME types
-const ACCEPTED = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'application/pdf']
+// Accepted file extensions
+const ACCEPTED_EXTS = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.mp3', '.wav', '.ogg', '.m4a', '.pdf']
+
+const getFileIcon = (filename) => {
+  if (!filename) return '📎'
+  const lower = filename.toLowerCase()
+  if (lower.match(/\.(jpg|jpeg|png|gif|webp)$/)) return '🖼️'
+  if (lower.match(/\.(mp3|wav|ogg|m4a)$/)) return '🎵'
+  if (lower.endsWith('.pdf')) return '📄'
+  return '📎'
+}
 
 const addFile = (file) => {
   if (!file) return
-  if (!ACCEPTED.some(t => file.type === t || file.type.startsWith('image/'))) return
+  const name = file.name.toLowerCase()
+  if (!ACCEPTED_EXTS.some(ext => name.endsWith(ext))) return
   attachments.value = [file]   // one file at a time
 }
 
@@ -49,7 +59,7 @@ const handleFileSelect = (event) => {
 const onPaste = (event) => {
   const items = Array.from(event.clipboardData?.items || [])
   const fileItem = items.find(i => i.kind === 'file' && (
-    i.type.startsWith('image/') || i.type === 'application/pdf'
+    i.type.startsWith('image/') || i.type === 'application/pdf' || i.type.startsWith('audio/')
   ))
   if (fileItem) {
     event.preventDefault()       // don't paste as text
@@ -139,6 +149,10 @@ const buildRecognition = () => {
 
 const startMic = () => {
   if (!micSupported) return
+  // Pause/stop any ongoing Text-to-Speech when the user starts the mic
+  if ('speechSynthesis' in window) {
+    window.speechSynthesis.cancel()
+  }
   recognition = buildRecognition()
   recognition.start()
 }
@@ -169,18 +183,18 @@ onBeforeUnmount(() => stopMic())
     <!-- Attachment chips -->
     <div class="chips" v-if="attachments.length">
       <div class="chip" v-for="(file, i) in attachments" :key="i">
-        <span>{{ file.name }}</span>
+        <span>{{ getFileIcon(file.name) }} {{ file.name }}</span>
         <button class="chip-rm" @click="removeAttachment(i)">×</button>
       </div>
     </div>
 
     <!-- Drag-over overlay hint -->
-    <div v-if="dragging" class="drop-hint">Drop image or PDF here</div>
+    <div v-if="dragging" class="drop-hint">Drop file here</div>
 
     <div class="box">
       <!-- Left: attach -->
       <label class="icon-btn" title="Attach file">
-        <input type="file" @change="handleFileSelect" style="display:none" accept="image/*,.pdf,audio/*" />
+        <input type="file" @change="handleFileSelect" style="display:none" accept=".jpg,.jpeg,.png,.gif,.webp,.mp3,.wav,.ogg,.m4a,.pdf" />
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
           <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
         </svg>
@@ -190,29 +204,16 @@ onBeforeUnmount(() => stopMic())
         ref="textarea"
         v-model="text"
         rows="1"
-        placeholder="Message the assistant… (or paste / drop an image)"
+        placeholder="Message the assistant… (or paste / drop a file)"
         @input="adjustHeight"
         @keydown="onKeyDown"
         @paste="onPaste"
         :disabled="disabled"
       />
 
-      <!-- Right: send OR mic -->
-      <button
-        v-if="text || attachments.length"
-        class="icon-btn send-btn"
-        @click="submit"
-        :disabled="disabled"
-        title="Send"
-      >
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <line x1="22" y1="2" x2="11" y2="13"/>
-          <polygon points="22 2 15 22 11 13 2 9 22 2"/>
-        </svg>
-      </button>
       <!-- Mic button — always visible when no text, hidden if unsupported -->
       <button
-        v-else-if="micSupported"
+        v-if="!text && micSupported"
         class="icon-btn mic-btn"
         :class="{ recording: isListening }"
         @click="toggleMic"
@@ -224,6 +225,20 @@ onBeforeUnmount(() => stopMic())
           <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
           <line x1="12" y1="19" x2="12" y2="23"/>
           <line x1="8"  y1="23" x2="16" y2="23"/>
+        </svg>
+      </button>
+
+      <!-- Send button -->
+      <button
+        v-if="text || attachments.length"
+        class="icon-btn send-btn"
+        @click="submit"
+        :disabled="disabled"
+        title="Send"
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="22" y1="2" x2="11" y2="13"/>
+          <polygon points="22 2 15 22 11 13 2 9 22 2"/>
         </svg>
       </button>
     </div>

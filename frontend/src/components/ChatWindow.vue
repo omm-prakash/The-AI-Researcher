@@ -56,6 +56,15 @@ const renderMath = (html) => {
 
 const renderMarkdown = (content) => renderMath(marked(content || ''))
 
+const getFileIcon = (filename) => {
+  if (!filename) return '📎'
+  const lower = filename.toLowerCase()
+  if (lower.match(/\.(jpg|jpeg|png|gif|webp)$/)) return '🖼️'
+  if (lower.match(/\.(mp3|wav|ogg|m4a)$/)) return '🎵'
+  if (lower.endsWith('.pdf')) return '📄'
+  return '📎'
+}
+
 // ── Action handlers ────────────────────────────────────────────────────────
 
 const copyContent = async (msg) => {
@@ -130,7 +139,7 @@ const speak = (msg) => {
 
       <!-- Attachments row -->
       <div v-if="msg.attachments && msg.attachments.length" class="attach-row">
-        <span v-for="(f, i) in msg.attachments" :key="i" class="attach-tag">📎 {{ f.name }}</span>
+        <span v-for="(f, i) in msg.attachments" :key="i" class="attach-tag">{{ getFileIcon(f.name) }} {{ f.name }}</span>
       </div>
 
       <!-- Action buttons -->
@@ -215,7 +224,7 @@ const speak = (msg) => {
 }
 
 .user .bubble {
-  background: rgba(34, 162, 231, 0.14);
+  background: rgba(58, 171, 247, 0.613);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
   border: 1px solid rgba(130, 165, 200, 0.35);
@@ -225,7 +234,7 @@ const speak = (msg) => {
 }
 
 .assistant .bubble {
-  background: rgba(240, 248, 255, 0.65);
+  background: rgba(248, 249, 255, 0.719);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border: 1px solid rgba(255, 255, 255, 0.7);

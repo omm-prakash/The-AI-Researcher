@@ -156,6 +156,8 @@ const sendMessage = async (payload) => {
 
     <div class="chat-pane">
 
+      <!-- Brand Name in Main Window -->
+      <div class="brand-main">TAR: The AI Researcher</div>
 
       <!-- Scrollable body — messages OR centered empty state -->
       <div class="chat-body" id="chat-body">

@@ -37,6 +37,16 @@ const cancelRename = () => { editingId.value = null }
       </svg>
     </button>
 
+    <!-- Quick new chat when collapsed -->
+    <div v-if="collapsed" class="collapsed-actions">
+      <button class="quick-new-btn" @click="emit('new')" title="New conversation">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+          <line x1="12" y1="5" x2="12" y2="19"/>
+          <line x1="5" y1="12" x2="19" y2="12"/>
+        </svg>
+      </button>
+    </div>
+
     <template v-if="!collapsed">
 
       <div class="sidebar-header">
@@ -127,7 +137,7 @@ const cancelRename = () => { editingId.value = null }
 .sidebar.collapsed {
   width: 48px;
   min-width: 48px;
-}
+}  
 
 .collapse-btn {
   flex-shrink: 0;
@@ -144,6 +154,33 @@ const cancelRename = () => { editingId.value = null }
 }
 .collapse-btn:hover { color: #40627a; background: rgba(70, 130, 180, 0.07); }
 .collapse-btn svg { width: 16px; height: 16px; }
+
+.collapsed-actions {
+  display: flex;
+  justify-content: center;
+  margin-top: 0.5rem;
+}
+
+.quick-new-btn {
+  background: rgba(82, 119, 139, 0.15);
+  border: 1px solid rgba(82, 119, 139, 0.35);
+  color: #52778b;
+  border-radius: 8px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.quick-new-btn:hover {
+  background: rgba(82, 119, 139, 0.28);
+  border-color: rgba(82, 119, 139, 0.5);
+  color: #30516a;
+  transform: scale(1.05);
+}
+.quick-new-btn svg { width: 16px; height: 16px; }
 
 .sidebar-header {
   display: flex;

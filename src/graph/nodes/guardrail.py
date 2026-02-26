@@ -18,12 +18,13 @@ BANNED_KEYWORDS = [
 _UNSAFE_PREFIX = "unsafe"
 
 # System prompt for Llama Guard / prompt-guard models
-_GUARD_SYSTEM = (
-    "You are a safety classifier. "
-    "Evaluate the following user message and respond with exactly one word: "
-    "'safe' if the content is appropriate, or 'unsafe' if it contains harmful, "
-    "sensitive, explicit, or policy-violating content."
-)
+from src.graph.prompts import _GUARD_SYSTEM
+# _GUARD_SYSTEM = (
+#     "You are a safety classifier. "
+#     "Evaluate the following user message and respond with exactly one word: "
+#     "'safe' if the content is appropriate, or 'unsafe' if it contains harmful, "
+#     "sensitive, explicit, or policy-violating content."
+# )
 
 _BLOCKED_RESPONSE = (
     "I cannot process requests containing inappropriate or sensitive content. "
