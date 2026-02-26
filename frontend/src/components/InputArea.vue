@@ -1,12 +1,26 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, watch, nextTick } from 'vue'
 
-const props = defineProps({ disabled: Boolean })
-const emit = defineEmits(['send'])
+const props = defineProps({ disabled: Boolean, prefill: String })
+const emit = defineEmits(['send', 'clear-prefill'])
 
 const text = ref('')
 const textarea = ref(null)
 const attachments = ref([])
+const dragging = ref(false)
+
+// When parent sets a prefill value (from Re-ask), populate the textarea and focus it
+watch(() => props.prefill, async (val) => {
+  if (val) {
+    text.value = val
+    emit('clear-prefill')
+    await nextTick()
+    adjustHeight()
+    textarea.value?.focus()
+    const len = text.value.length
+    textarea.value?.setSelectionRange(len, len)
+  }
+})
 
 const adjustHeight = () => {
   if (textarea.value) {
@@ -15,12 +29,48 @@ const adjustHeight = () => {
   }
 }
 
+// Accepted MIME types
+const ACCEPTED = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'application/pdf']
+
+const addFile = (file) => {
+  if (!file) return
+  if (!ACCEPTED.some(t => file.type === t || file.type.startsWith('image/'))) return
+  attachments.value = [file]   // one file at a time
+}
+
+// ── File picker ────────────────────────────────────────────────────────────
 const handleFileSelect = (event) => {
   const files = Array.from(event.target.files)
-  if (files.length > 0) attachments.value = [files[files.length - 1]]
+  if (files.length > 0) addFile(files[files.length - 1])
   event.target.value = ''
 }
 
+// ── Paste from clipboard (images via Ctrl+V / Cmd+V) ──────────────────────
+const onPaste = (event) => {
+  const items = Array.from(event.clipboardData?.items || [])
+  const fileItem = items.find(i => i.kind === 'file' && (
+    i.type.startsWith('image/') || i.type === 'application/pdf'
+  ))
+  if (fileItem) {
+    event.preventDefault()       // don't paste as text
+    addFile(fileItem.getAsFile())
+  }
+}
+
+// ── Drag and drop ──────────────────────────────────────────────────────────
+const onDragOver = (event) => {
+  event.preventDefault()
+  dragging.value = true
+}
+const onDragLeave = () => { dragging.value = false }
+const onDrop = (event) => {
+  event.preventDefault()
+  dragging.value = false
+  const files = Array.from(event.dataTransfer?.files || [])
+  if (files.length > 0) addFile(files[0])
+}
+
+// ── Misc ───────────────────────────────────────────────────────────────────
 const removeAttachment = (i) => attachments.value.splice(i, 1)
 
 const submit = () => {
@@ -37,7 +87,13 @@ const onKeyDown = (e) => {
 </script>
 
 <template>
-  <div class="input-wrap" :class="{ disabled }">
+  <div
+    class="input-wrap"
+    :class="{ disabled, dragging }"
+    @dragover="onDragOver"
+    @dragleave="onDragLeave"
+    @drop="onDrop"
+  >
 
     <!-- Attachment chips -->
     <div class="chips" v-if="attachments.length">
@@ -46,6 +102,9 @@ const onKeyDown = (e) => {
         <button class="chip-rm" @click="removeAttachment(i)">×</button>
       </div>
     </div>
+
+    <!-- Drag-over overlay hint -->
+    <div v-if="dragging" class="drop-hint">Drop image or PDF here</div>
 
     <div class="box">
       <!-- Left: attach -->
@@ -60,9 +119,10 @@ const onKeyDown = (e) => {
         ref="textarea"
         v-model="text"
         rows="1"
-        placeholder="Message the assistant…"
+        placeholder="Message the assistant… (or paste / drop an image)"
         @input="adjustHeight"
         @keydown="onKeyDown"
+        @paste="onPaste"
         :disabled="disabled"
       />
 
@@ -94,6 +154,28 @@ const onKeyDown = (e) => {
 <style scoped>
 .input-wrap {
   width: 100%;
+  position: relative;
+}
+
+/* Drag-over ring on the whole input area */
+.input-wrap.dragging .box {
+  border-color: rgba(100, 120, 255, 0.7);
+  box-shadow:
+    0 0 0 3px rgba(80, 100, 255, 0.2),
+    0 0 24px rgba(80, 100, 255, 0.15);
+}
+
+/* Drop hint label */
+.drop-hint {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 0.8rem;
+  color: #7070c0;
+  pointer-events: none;
+  white-space: nowrap;
+  z-index: 2;
 }
 
 .chips {
@@ -139,7 +221,11 @@ const onKeyDown = (e) => {
 }
 
 .box:focus-within {
-  border-color: rgba(255,255,255,0.15);
+  border-color: rgba(100, 120, 255, 0.55);
+  box-shadow:
+    0 0 0 3px rgba(80, 100, 255, 0.15),
+    0 0 18px rgba(80, 100, 255, 0.12),
+    0 0 40px rgba(80, 100, 255, 0.06);
 }
 
 textarea {

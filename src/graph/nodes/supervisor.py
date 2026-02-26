@@ -12,15 +12,15 @@ class Router(BaseModel):
         description="The next agent to route to depending on the task."
     )
 
-from src.utils.context import trim_history
+from src.utils.context import trim_history, flatten_for_text_llm
 
 def supervisor_node(state: AgentState):
     print('IN SUPERVISOR \n')
     members = ["Researcher", "Casual"]
     system_prompt = SUPERVISOR_PROMPT.format(members=", ".join(members))
     
-    # Trim history to avoid 413 Payload Too Large and TPM rate limits
-    messages = trim_history(state.get("messages", []))
+    # Trim history then flatten multimodal content to strings for text-only LLM
+    messages = flatten_for_text_llm(trim_history(state.get("messages", [])))
     
     # Use dynamic LLM routing
     llm = get_llm("logic-reasoning")

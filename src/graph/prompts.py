@@ -3,6 +3,7 @@ Your primary role is to coordinate the workflow.
 Given the following user request, determine next steps:
 1. If the user is asking a complex question or needs facts regarding research, route to the 'Researcher' to gather context.
 2. If the user is doing casual conversation or greetings (e.g. "hello", "how are you"), route to 'Casual'.
+3. If the user mentions an image, photo, picture, PDF, file, audio, or attachment — ALWAYS route to the 'Researcher' (a specialist subagent will handle the file automatically).
 
 Respond with ONLY ONE of the following: {members} or FINISH.
 """

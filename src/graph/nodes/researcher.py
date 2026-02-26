@@ -4,7 +4,7 @@ from src.graph.state import AgentState
 from src.graph.prompts import RESEARCHER_PROMPT
 from src.graph.llms import get_llm
 from src.tools.search import internet_search_tool
-from src.utils.context import trim_history
+from src.utils.context import trim_history, flatten_for_text_llm
 
 
 def researcher_node(state: AgentState):
@@ -16,7 +16,7 @@ def researcher_node(state: AgentState):
     """
     print("\n[Researcher] Starting research...\n")
 
-    messages = trim_history(state.get("messages", []))
+    messages = flatten_for_text_llm(trim_history(state.get("messages", [])))
     llm = get_llm("agentic-systems")
 
     # Build the attachment context block for the prompt

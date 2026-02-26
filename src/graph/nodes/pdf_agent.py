@@ -2,7 +2,7 @@ import os
 from langchain_core.prompts import ChatPromptTemplate
 from src.graph.state import AgentState
 from src.graph.prompts import PDF_AGENT_PROMPT
-from src.graph.llms import get_llm
+from src.graph.llms import get_pdf_llm
 from src.utils.pdf import parse_pdf
 
 
@@ -10,6 +10,9 @@ def pdf_agent_node(state: AgentState):
     """
     PDFAgent: Dedicated subagent that extracts all relevant content from a PDF
     attachment and writes it into state['attachment_context'] for the Researcher.
+
+    Uses Gemini 2.5 Flash Lite (up to 25 000 output tokens) so the entire PDF
+    can be processed in a single LLM call — no chunking required.
     """
     print("\n[PDFAgent] Starting PDF extraction...\n")
 
@@ -35,23 +38,28 @@ def pdf_agent_node(state: AgentState):
         print(f"[PDFAgent] Failed to parse PDF: {e}")
         return {"attachment_context": f"Failed to parse PDF: {str(e)}"}
 
-    # Chunk the PDF text to avoid context-window overflow
-    chunk_size = 4000
-    chunks = [full_text[i : i + chunk_size] for i in range(0, len(full_text), chunk_size)]
+    # Cap input to 20 000 characters to stay within context limits
+    MAX_CHARS = 20000
+    if len(full_text) > MAX_CHARS:
+        print(f"[PDFAgent] PDF text truncated from {len(full_text)} to {MAX_CHARS} characters.")
+        full_text = full_text[:MAX_CHARS]
 
-    llm = get_llm("logic-reasoning")
-    prompt = ChatPromptTemplate.from_template(PDF_AGENT_PROMPT)
-    chain = prompt | llm
+    print(f"[PDFAgent] PDF parsed — {len(full_text)} characters. Calling Gemini 2.5 Flash Lite...")
 
-    chunk_results = []
-    for i, chunk in enumerate(chunks):
-        print(f"[PDFAgent] Processing chunk {i + 1}/{len(chunks)}")
-        response = chain.invoke({"user_query": user_query, "pdf_content": chunk})
-        content = response.content.strip()
-        if content.lower() not in ("skipped, not relevant.", "skipped, not relevant"):
-            chunk_results.append(f"--- Chunk {i + 1} ---\n{content}")
+    try:
+        llm = get_pdf_llm()
+        prompt = ChatPromptTemplate.from_template(PDF_AGENT_PROMPT)
+        chain = prompt | llm
 
-    extracted = "\n\n".join(chunk_results) if chunk_results else "No relevant content found in the PDF."
+        response = chain.invoke({"user_query": user_query, "pdf_content": full_text})
+        extracted = response.content.strip()
+    except Exception as e:
+        print(f"[PDFAgent] LLM call failed: {e}")
+        return {"attachment_context": f"PDF was parsed but LLM extraction failed: {str(e)}"}
+
+    if not extracted:
+        extracted = "No relevant content found in the PDF."
+
     context_block = (
         f"[PDF Attachment Analysis]\n"
         f"The following content was extracted from the attached PDF in relation to the user's query:\n\n"

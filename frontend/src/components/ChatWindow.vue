@@ -9,7 +9,10 @@ const props = defineProps({
   isWaiting: Boolean,
 })
 
+const emit = defineEmits(['reask'])
+
 const bottomAnchor = ref(null)
+const copiedId = ref(null)
 
 // Scroll to bottom whenever messages or waiting state changes
 watch(
@@ -20,10 +23,9 @@ watch(
   }
 )
 
-// ── Math rendering helpers (run BEFORE v-html, no DOM mutation) ───────────────
+// ── Math rendering (runs before v-html, no DOM mutation) ─────────────────────
 
 const renderMath = (html) => {
-  // Block math: \[...\] and $$...$$
   html = html.replace(/\\\[([\s\S]+?)\\\]/g, (_, expr) => {
     try { return katex.renderToString(expr.trim(), { displayMode: true, throwOnError: false, strict: false }) }
     catch { return _ }
@@ -32,7 +34,6 @@ const renderMath = (html) => {
     try { return katex.renderToString(expr.trim(), { displayMode: true, throwOnError: false, strict: false }) }
     catch { return _ }
   })
-  // Inline math: \(...\) and $...$
   html = html.replace(/\\\((.+?)\\\)/gs, (_, expr) => {
     try { return katex.renderToString(expr.trim(), { displayMode: false, throwOnError: false, strict: false }) }
     catch { return _ }
@@ -44,9 +45,27 @@ const renderMath = (html) => {
   return html
 }
 
-const renderMarkdown = (content) => {
-  const html = marked(content || '')
-  return renderMath(html)
+const renderMarkdown = (content) => renderMath(marked(content || ''))
+
+// ── Action handlers ────────────────────────────────────────────────────────
+
+const copyContent = async (msg) => {
+  try {
+    await navigator.clipboard.writeText(msg.content)
+  } catch {
+    const el = document.createElement('textarea')
+    el.value = msg.content
+    document.body.appendChild(el)
+    el.select()
+    document.execCommand('copy')
+    document.body.removeChild(el)
+  }
+  copiedId.value = msg.id
+  setTimeout(() => { copiedId.value = null }, 2000)
+}
+
+const reask = (msg) => {
+  emit('reask', msg.content)
 }
 </script>
 
@@ -58,18 +77,41 @@ const renderMarkdown = (content) => {
       :class="['msg', msg.role]"
     >
       <div class="bubble markdown-body" v-html="renderMarkdown(msg.content)" />
+
+      <!-- Attachments row -->
       <div v-if="msg.attachments && msg.attachments.length" class="attach-row">
         <span v-for="(f, i) in msg.attachments" :key="i" class="attach-tag">📎 {{ f.name }}</span>
       </div>
+
+      <!-- Action buttons -->
+      <div v-if="msg.role === 'user' || msg.role === 'assistant'" class="action-bar">
+        <!-- Copy: available on both -->
+        <button class="action-btn" @click="copyContent(msg)" :title="copiedId === msg.id ? 'Copied!' : 'Copy'">
+          <template v-if="copiedId === msg.id">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+            Copied
+          </template>
+          <template v-else>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            Copy
+          </template>
+        </button>
+        <!-- Re-ask: user messages only -->
+        <button v-if="msg.role === 'user'" class="action-btn" @click="reask(msg)" title="Re-ask this question">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          Re-ask
+        </button>
+      </div>
     </div>
 
+    <!-- Typing indicator -->
     <div v-if="isWaiting" class="msg assistant">
       <div class="bubble typing">
         <span /><span /><span />
       </div>
     </div>
 
-    <!-- Invisible anchor — scrolled into view on each update -->
+    <!-- Invisible scroll anchor -->
     <div ref="bottomAnchor" style="height:1px" />
   </div>
 </template>
@@ -120,6 +162,47 @@ const renderMarkdown = (content) => {
   border-radius: 10px;
 }
 
+/* ── Action bar ────────────────────────────────────────────────────────── */
+.action-bar {
+  display: flex;
+  gap: 0.4rem;
+  margin-top: 0.35rem;
+  opacity: 0;
+  transition: opacity 0.18s;
+}
+
+.msg:hover .action-bar {
+  opacity: 1;
+}
+
+.action-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  color: #6060a0;
+  font-size: 0.72rem;
+  font-family: inherit;
+  padding: 0.25rem 0.65rem;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s, border-color 0.15s;
+  white-space: nowrap;
+}
+
+.action-btn svg {
+  width: 12px;
+  height: 12px;
+}
+
+.action-btn:hover {
+  color: #a0a0d0;
+  background: rgba(255,255,255,0.07);
+  border-color: rgba(255,255,255,0.14);
+}
+
+/* ── Attachments ─────────────────────────────────────────────────────── */
 .attach-row {
   display: flex;
   gap: 0.4rem;
@@ -136,7 +219,7 @@ const renderMarkdown = (content) => {
   border-radius: 6px;
 }
 
-/* Typing indicator */
+/* ── Typing indicator ────────────────────────────────────────────────── */
 .typing {
   display: flex;
   gap: 5px;
@@ -153,7 +236,7 @@ const renderMarkdown = (content) => {
 .typing span:nth-child(1) { animation-delay: -0.28s; }
 .typing span:nth-child(2) { animation-delay: -0.14s; }
 
-/* Markdown resets */
+/* ── Markdown ────────────────────────────────────────────────────────── */
 :deep(.markdown-body p)             { margin: 0 0 0.8em; }
 :deep(.markdown-body p:last-child)  { margin-bottom: 0; }
 :deep(.markdown-body ul),
@@ -166,7 +249,7 @@ const renderMarkdown = (content) => {
 :deep(.markdown-body a)             { color: #7a9bff; }
 :deep(.markdown-body strong)        { color: #ffffff; }
 
-/* KaTeX — ensure white text on dark background */
+/* ── KaTeX ───────────────────────────────────────────────────────────── */
 :deep(.katex)                       { color: #e8e8f8; font-size: 1em; }
 :deep(.katex-display)               { margin: 0.8em 0; overflow-x: auto; overflow-y: hidden; }
 :deep(.katex-display > .katex)      { font-size: 1.1em; }

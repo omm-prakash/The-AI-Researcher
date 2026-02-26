@@ -44,3 +44,39 @@ def trim_history(messages, max_chars=20000):
         trimmed = messages[-1:]
         
     return trimmed
+
+
+def flatten_for_text_llm(messages):
+    """
+    Text-only Groq models require every message's .content to be a string.
+    When a user attaches an image, the HumanMessage.content is a list:
+      [{"type":"text","text":"..."}, {"type":"image_url","image_url":{...}}]
+    This function returns new message objects with list content replaced by
+    a plain string (text parts joined), safe for any text-only LLM.
+    """
+    from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
+
+    flat = []
+    for msg in messages:
+        if not isinstance(msg.content, list):
+            flat.append(msg)
+            continue
+
+        # Extract text parts, skip image/audio parts
+        text_parts = [
+            part.get("text", "")
+            for part in msg.content
+            if isinstance(part, dict) and part.get("type") == "text"
+        ]
+        text = " ".join(text_parts).strip() or "[attachment]"
+
+        # Reconstruct with the same type
+        if isinstance(msg, HumanMessage):
+            flat.append(HumanMessage(content=text, id=getattr(msg, "id", None)))
+        elif isinstance(msg, AIMessage):
+            flat.append(AIMessage(content=text, id=getattr(msg, "id", None)))
+        elif isinstance(msg, SystemMessage):
+            flat.append(SystemMessage(content=text, id=getattr(msg, "id", None)))
+        else:
+            flat.append(msg)   # unknown type — pass through unchanged
+    return flat

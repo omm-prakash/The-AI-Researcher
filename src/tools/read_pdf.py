@@ -28,16 +28,19 @@ def read_pdf_tool(file_path: str, task: str) -> str:
         prompt = ChatPromptTemplate.from_template(
             "You are an AI assistant helping a researcher. Based on the following PDF text chunk, "
             "perform the following task:\nTask: {task}\n\nPDF Chunk:\n{chunk}\n\n"
-            "Summarize the chunk in 200 words."
+            "You are given current chunk and previous chunk summary, use it to generate a new summary."
+            "Summarize the chunk in 700 words."
             "If the chunk does not contain relevant information, just briefly return 'Skipped, not relevant.':"
         )
         chain = prompt | llm
         
         results = []
         for index, chunk in enumerate(chunks):
-            response = chain.invoke({"task": task, "chunk": chunk})
+            response = chain.invoke({"task": task, "chunk": chunk+results[-1] if results else ""})
             results.append(f"--- Chunk {index + 1} Analysis ---\n{response.content}")
-            
-        return "\n".join(results)
+
+        del chunks
+        del file_bytes
+        return "\n".join(results[-1])
     except Exception as e:
         return f"Failed to read PDF: {str(e)}"

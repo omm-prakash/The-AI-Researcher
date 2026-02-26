@@ -14,23 +14,34 @@ from src.tools.search import internet_search_tool
 
 def _route_after_supervisor(state: AgentState) -> str:
     """
-    After the Supervisor decides to use the Researcher, inspect whether
-    an attachment was uploaded and route to the matching subagent first.
-    If the Supervisor chose Casual or FINISH, pass that through directly.
+    Routing logic after the Supervisor decides.
+
+    IMPORTANT: The Supervisor is a text-only LLM — it cannot see file attachments.
+    Therefore, if the user uploaded a file, we ALWAYS route to the matching
+    attachment subagent BEFORE passing to the Researcher, regardless of whether
+    the Supervisor chose Researcher, Casual, or anything else.
+    The only exception is FINISH, which we always respect.
     """
     next_agent = state.get("next_agent", "FINISH")
     attachment_type = state.get("attachment_type", "none")
 
-    # If supervisor decided to use Researcher AND there is an attachment,
-    # delegate to the appropriate specialist subagent first.
-    if next_agent == "Researcher" and attachment_type != "none":
+    # Respect explicit termination
+    if next_agent == "FINISH":
+        return "FINISH"
+    print('\n\nattachment_type', attachment_type)
+    # If an attachment is present, route to the matching specialist subagent
+    # regardless of the Supervisor's text-based routing decision.
+    if attachment_type and attachment_type != "none":
         attachment_routes = {
             "pdf": "PDFAgent",
             "image": "ImageAgent",
             "audio": "AudioAgent",
         }
-        return attachment_routes.get(attachment_type, "Researcher")
+        routed = attachment_routes.get(attachment_type)
+        if routed:
+            return routed
 
+    # No attachment — use the Supervisor's decision as-is
     return next_agent
 
 

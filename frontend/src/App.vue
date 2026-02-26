@@ -50,6 +50,12 @@ const renameConversation = ({ id, title }) => {
   if (conv) conv.title = title
 }
 
+// ── Re-ask: pre-fill input from an assistant message ─────────────────────────
+const prefillText = ref('')
+const handleReask = (content) => {
+  prefillText.value = content
+}
+
 const activeController = ref(null)   // tracks in-flight fetch so it can be cancelled
 
 const cancelRequest = () => {
@@ -167,6 +173,7 @@ const sendMessage = async (payload) => {
           <ChatWindow
             :messages="activeConv?.messages || []"
             :isWaiting="activeConv?.isWaiting || false"
+            @reask="handleReask"
           />
         </div>
 
@@ -178,7 +185,12 @@ const sendMessage = async (payload) => {
           <div v-if="activeConv?.isWaiting" class="cancel-row">
             <button class="cancel-btn" @click="cancelRequest">✕ Cancel</button>
           </div>
-          <InputArea @send="sendMessage" :disabled="activeConv?.isWaiting || false" />
+          <InputArea
+            @send="sendMessage"
+            :disabled="activeConv?.isWaiting || false"
+            :prefill="prefillText"
+            @clear-prefill="prefillText = ''"
+          />
           <div class="footer-note">Assistant can make mistakes. Verify important information.</div>
         </div>
       </div>

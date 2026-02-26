@@ -25,12 +25,12 @@ def chat_endpoint():
     """
     Endpoint to interact with the multi-agent system.
     Persists chats to a PostgreSQL database via langgraph-checkpoint-postgres and langgraph.store.postgres.
-    """
-    from src.utils.pdf import parse_pdf
-    
+    """    
     # Handle both Application/JSON and Multipart/Form-Data
+    # print('\n\nrequest', request)
     if request.is_json:
         data = request.get_json()
+        print(data)
         thread_id = data.get("thread_id")
         message_text = data.get("message")
         files = []
@@ -100,8 +100,6 @@ def chat_endpoint():
         # NOTE: attachment_type is passed fresh every request from the frontend,
         # so there is no need to write it back to the checkpoint here.
         return jsonify({"response": final_response, "thread_id": thread_id})
-
-
 
     # except Exception as e:
     #     return jsonify({"error": str(e)}), 500

@@ -12,7 +12,6 @@ def internet_search_tool(query: str) -> str:
     search = DuckDuckGoSearchRun()
     try:
         raw_result = search.run(query)
-        print(raw_result)
         # Prevent 413 Payload Too Large by strictly chunking the result
         return manage_context(raw_result, max_tokens=500)
     except Exception as e:
