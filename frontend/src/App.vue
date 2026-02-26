@@ -156,20 +156,15 @@ const sendMessage = async (payload) => {
 
     <div class="chat-pane">
 
-      <!-- Header -->
-      <div class="header">
-        <h1>{{ activeConv?.title || 'New Chat' }}</h1>
-      </div>
 
       <!-- Scrollable body — messages OR centered empty state -->
       <div class="chat-body" id="chat-body">
 
-        <!-- Empty state: hero centered via flex -->
         <div v-if="!hasMessages" class="empty-center">
           <div class="empty-hero">
             <div class="hero-glyph">✦</div>
-            <h2>What do you want to research?</h2>
-            <p>Ask anything • Attach a PDF, image, or audio</p>
+            <h2>What do you want to explore?</h2>
+            <p>Ask anything · Attach a PDF, image, or audio</p>
           </div>
         </div>
 
@@ -216,31 +211,40 @@ const sendMessage = async (payload) => {
 .empty-hero {
   text-align: center;
   user-select: none;
+  padding: 2.5rem 2rem;
+  background: rgba(240, 248, 255, 0.52);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  border-radius: 20px;
+  box-shadow: 0 8px 40px rgba(30, 50, 80, 0.1);
+  max-width: 360px;
+  width: 90%;
 }
 
 .hero-glyph {
   font-size: 2rem;
   margin-bottom: 0.85rem;
-  color: #6060a0;
+  color: #60809a;
   animation: glow 3s ease-in-out infinite;
 }
 
 .empty-hero h2 {
-  margin: 0 0 0.35rem;
-  font-size: 1.15rem;
-  font-weight: 500;
-  color: #c8c8e0;
+  margin: 0 0 0.4rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #202d3a;
   letter-spacing: -0.01em;
 }
 
 .empty-hero p {
   margin: 0;
   font-size: 0.8rem;
-  color: #7070a0;
+  color: #60809a;
 }
 
 @keyframes glow {
-  0%, 100% { opacity: 0.35; }
-  50%       { opacity: 0.9; }
+  0%, 100% { opacity: 0.4; }
+  50%       { opacity: 1; }
 }
 </style>

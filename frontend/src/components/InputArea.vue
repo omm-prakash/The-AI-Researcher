@@ -236,22 +236,21 @@ onBeforeUnmount(() => stopMic())
   position: relative;
 }
 
-/* Drag-over ring on the whole input area */
+/* Drag-over ring */
 .input-wrap.dragging .box {
-  border-color: rgba(100, 120, 255, 0.7);
+  border-color: rgba(82, 119, 139, 0.65);
   box-shadow:
-    0 0 0 3px rgba(80, 100, 255, 0.2),
-    0 0 24px rgba(80, 100, 255, 0.15);
+    0 0 0 3px rgba(82, 119, 139, 0.18),
+    0 0 24px rgba(82, 119, 139, 0.12);
 }
 
-/* Drop hint label */
+/* Drop hint */
 .drop-hint {
   position: absolute;
-  top: 50%;
-  left: 50%;
+  top: 50%; left: 50%;
   transform: translate(-50%, -50%);
   font-size: 0.8rem;
-  color: #7070c0;
+  color: #52778b;
   pointer-events: none;
   white-space: nowrap;
   z-index: 2;
@@ -265,12 +264,12 @@ onBeforeUnmount(() => stopMic())
 }
 
 .chip {
-  background: #1a1a20;
-  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(244, 248, 255, 0.75);
+  border: 1px solid rgba(130, 165, 200, 0.3);
   padding: 0.2rem 0.55rem;
   border-radius: 6px;
   font-size: 0.78rem;
-  color: #888898;
+  color: #40627a;
   display: flex;
   align-items: center;
   gap: 0.4rem;
@@ -279,39 +278,41 @@ onBeforeUnmount(() => stopMic())
 .chip-rm {
   background: none;
   border: none;
-  color: #555566;
+  color: #7a9eb8;
   cursor: pointer;
   font-size: 1rem;
   line-height: 1;
   padding: 0;
   transition: color 0.15s;
 }
-.chip-rm:hover { color: #d44; }
+.chip-rm:hover { color: #c04040; }
 
 .box {
   display: flex;
   align-items: flex-end;
-  background: #111116;
-  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(240, 248, 255, 0.62);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.65);
   border-radius: 14px;
   padding: 0.45rem 0.8rem;
-  transition: border-color 0.2s;
+  transition: border-color 0.2s, box-shadow 0.2s;
   gap: 0.25rem;
+  box-shadow: 0 4px 20px rgba(30, 50, 100, 0.08);
 }
 
 .box:focus-within {
-  border-color: rgba(100, 120, 255, 0.55);
+  border-color: rgba(100, 140, 180, 0.6);
   box-shadow:
-    0 0 0 3px rgba(80, 100, 255, 0.15),
-    0 0 18px rgba(80, 100, 255, 0.12),
-    0 0 40px rgba(80, 100, 255, 0.06);
+    0 0 0 3px rgba(82, 119, 139, 0.12),
+    0 4px 24px rgba(30, 50, 100, 0.12);
 }
 
 textarea {
   flex: 1;
   background: transparent;
   border: none;
-  color: #d8d8e8;
+  color: #1a252c;
   font-family: inherit;
   font-size: 0.93rem;
   line-height: 1.55;
@@ -322,12 +323,12 @@ textarea {
   outline: none;
 }
 
-textarea::placeholder { color: #3a3a4a; }
+textarea::placeholder { color: #90aac4; }
 
 .icon-btn {
   background: transparent;
   border: none;
-  color: #3a3a4a;
+  color: #90aac4;
   cursor: pointer;
   padding: 0.4rem;
   border-radius: 8px;
@@ -338,36 +339,32 @@ textarea::placeholder { color: #3a3a4a; }
   flex-shrink: 0;
 }
 .icon-btn svg { width: 18px; height: 18px; }
-.icon-btn:hover { color: #8888a0; background: rgba(255,255,255,0.04); }
+.icon-btn:hover { color: #52778b; background: rgba(82, 119, 139, 0.08); }
 
-.send-btn {
-  color: #4f6ef7;
-}
+.send-btn { color: #52778b; }
 .send-btn:hover {
-  color: #7a9bff;
-  background: rgba(79, 110, 247, 0.1);
+  color: #30516a;
+  background: rgba(82, 119, 139, 0.12);
 }
 
-.mic-btn {
-  color: #5a5a72;
-}
+.mic-btn { color: #7a9eb8; }
 .mic-btn:hover {
-  color: #cc5555;
-  background: rgba(200, 60, 60, 0.07);
+  color: #c04040;
+  background: rgba(192, 64, 64, 0.07);
 }
 
-/* Active recording state — pulsing red ring */
 .mic-btn.recording {
-  color: #e05555;
-  background: rgba(200, 60, 60, 0.1);
+  color: #c04040;
+  background: rgba(192, 64, 64, 0.09);
   border-radius: 8px;
   animation: mic-pulse 1.4s ease-in-out infinite;
 }
 
 @keyframes mic-pulse {
-  0%, 100% { box-shadow: 0 0 0 0   rgba(210, 60, 60, 0);    }
-  50%       { box-shadow: 0 0 0 4px rgba(210, 60, 60, 0.25); }
+  0%, 100% { box-shadow: 0 0 0 0   rgba(192, 64, 64, 0);    }
+  50%       { box-shadow: 0 0 0 4px rgba(192, 64, 64, 0.22); }
 }
 
 .disabled { opacity: 0.5; pointer-events: none; }
 </style>
+

@@ -1,21 +1,40 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
+/* ── Design tokens ──────────────────────────────────────────────────────── */
 :root {
-  --bg: #0a0a0d;
-  --bg-panel: #0e0e13;
-  --bg-surface: #141418;
-  --bg-elevated: #1c1c22;
-  --text-primary: #e8e8ed;
-  --text-muted: #6b6b78;
-  --text-dim: #3d3d48;
-  --accent: #4f6ef7;
-  --accent-hover: #3a5ae0;
-  --border: rgba(255, 255, 255, 0.055);
-  --border-mid: rgba(255, 255, 255, 0.09);
-  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.35);
-  --shadow-md: 0 8px 32px rgba(0, 0, 0, 0.55);
+  /* Light bluish palette */
+  --bg-from: #e0ebf9;
+  --bg-mid: #cce0f2;
+  --bg-to: #bbd5e8;
+
+  /* Glass surfaces */
+  --glass: rgba(240, 248, 255, 0.52);
+  --glass-strong: rgba(240, 248, 255, 0.72);
+  --glass-subtle: rgba(240, 248, 255, 0.28);
+  --glass-border: rgba(255, 255, 255, 0.55);
+  --glass-border-s: rgba(255, 255, 255, 0.38);
+
+  /* Text */
+  --text-primary: #1a222c;
+  --text-muted: #50677a;
+  --text-dim: #809fb8;
+  --text-hint: #90b0c4;
+
+  /* Accent — light blue */
+  --accent: #52748b;
+  --accent-light: #80abc4;
+  --accent-glow: rgba(82, 116, 139, 0.22);
+
+  /* Shadows */
+  --shadow-sm: 0 2px 12px rgba(30, 50, 80, 0.08);
+  --shadow-md: 0 8px 32px rgba(30, 50, 80, 0.14);
+  --shadow-lg: 0 20px 60px rgba(30, 50, 80, 0.2);
+
+  /* Blur strength */
+  --blur: 18px;
 }
 
+/* ── Reset ──────────────────────────────────────────────────────────────── */
 *,
 *::before,
 *::after {
@@ -28,11 +47,10 @@ html {
   padding: 0;
   width: 100%;
   height: 100%;
-  background: var(--bg);
-  color: var(--text-primary);
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   overflow: hidden;
   -webkit-font-smoothing: antialiased;
+  color: var(--text-primary);
 }
 
 #app {
@@ -40,7 +58,13 @@ html {
   height: 100%;
 }
 
-/* ── Shell ───────────────────────────────────────────────────────────────── */
+/* ── Background — misty landscape gradient + subtle SVG scenery ─────────── */
+body {
+  background: url('/research_bg.jpg') no-repeat center center fixed;
+  background-size: cover;
+}
+
+/* ── App shell ───────────────────────────────────────────────────────────── */
 .app-shell {
   display: flex;
   height: 100vh;
@@ -56,24 +80,29 @@ html {
   min-width: 0;
   height: 100vh;
   overflow: hidden;
-  background: var(--bg);
+  background: transparent;
 }
 
+/* ── Header ──────────────────────────────────────────────────────────────── */
 .header {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0.9rem 1.5rem;
-  background: var(--bg-panel);
+  padding: 0.8rem 1.5rem;
+  background: var(--glass);
+  backdrop-filter: blur(var(--blur));
+  -webkit-backdrop-filter: blur(var(--blur));
+  border-bottom: 1px solid var(--glass-border);
   flex-shrink: 0;
   z-index: 20;
+  box-shadow: var(--shadow-sm);
 }
 
 .header h1 {
   margin: 0;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   font-weight: 500;
-  color: #ffffff;
+  color: var(--text-muted);
   letter-spacing: 0.01em;
   white-space: nowrap;
   overflow: hidden;
@@ -81,7 +110,7 @@ html {
   max-width: 60vw;
 }
 
-/* ── Scrollable messages ─────────────────────────────────────────────────── */
+/* ── Scroll body ─────────────────────────────────────────────────────────── */
 .chat-body {
   flex: 1;
   overflow-y: auto;
@@ -89,10 +118,8 @@ html {
   display: flex;
   flex-direction: column;
   min-height: 0;
-  /* critical: lets flex child shrink below content size */
 }
 
-/* Messages: pad and stack from top */
 .messages-zone {
   width: 100%;
   max-width: 720px;
@@ -100,10 +127,10 @@ html {
   padding: 1.75rem 1.25rem 1rem;
 }
 
-/* ── Input bar — always pinned at bottom ─────────────────────────────────── */
+/* ── Input bar ───────────────────────────────────────────────────────────── */
 .input-bar {
   flex-shrink: 0;
-  background: var(--bg);
+  background: transparent;
   padding: 0.75rem 1.5rem 1.25rem;
 }
 
@@ -113,7 +140,7 @@ html {
   margin: 0 auto;
 }
 
-/* Cancel button shown while waiting for backend response */
+/* ── Cancel button ───────────────────────────────────────────────────────── */
 .cancel-row {
   display: flex;
   justify-content: center;
@@ -121,28 +148,31 @@ html {
 }
 
 .cancel-btn {
-  background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #6060a0;
+  background: var(--glass);
+  border: 1px solid var(--glass-border);
+  color: var(--text-muted);
   font-size: 0.75rem;
   font-family: inherit;
-  padding: 0.3rem 0.9rem;
+  padding: 0.3rem 1rem;
   border-radius: 20px;
   cursor: pointer;
-  transition: color 0.15s, border-color 0.15s;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  transition: all 0.18s;
 }
 
 .cancel-btn:hover {
-  color: #e06060;
-  border-color: rgba(224, 96, 96, 0.3);
+  color: #a04040;
+  border-color: rgba(160, 64, 64, 0.35);
+  background: rgba(255, 240, 240, 0.7);
 }
 
-/* ── Footer caption ─────────────────────────────────────────────────────── */
+/* ── Footer note ─────────────────────────────────────────────────────────── */
 .footer-note {
   text-align: center;
-  font-size: 0.7rem;
-  color: var(--text-dim);
-  padding-top: 0.4rem;
+  font-size: 0.68rem;
+  color: var(--text-hint);
+  padding-top: 0.45rem;
 }
 
 /* ── Scrollbar ───────────────────────────────────────────────────────────── */
@@ -155,34 +185,36 @@ html {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(82, 116, 139, 0.2);
   border-radius: 6px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.14);
+  background: rgba(82, 116, 139, 0.35);
 }
 
-/* ── Markdown ────────────────────────────────────────────────────────────── */
+/* ── Markdown shared ─────────────────────────────────────────────────────── */
 .message-content blockquote {
-  border-left: 2px solid var(--accent);
+  border-left: 2px solid var(--accent-light);
   margin: 0.5rem 0;
   padding-left: 1rem;
   color: var(--text-muted);
 }
 
 .message-content pre {
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(244, 248, 255, 0.7);
+  backdrop-filter: blur(8px);
   padding: 1rem;
   border-radius: 8px;
   overflow-x: auto;
-  border: 1px solid var(--border-mid);
+  border: 1px solid rgba(140, 170, 200, 0.25);
 }
 
 .message-content code {
   font-family: 'JetBrains Mono', 'Fira Code', monospace;
-  background: rgba(0, 0, 0, 0.35);
+  background: rgba(232, 244, 255, 0.75);
   padding: 0.15rem 0.4rem;
   border-radius: 4px;
   font-size: 0.87em;
+  color: var(--accent);
 }

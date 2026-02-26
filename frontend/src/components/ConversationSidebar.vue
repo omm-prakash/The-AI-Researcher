@@ -112,13 +112,16 @@ const cancelRename = () => { editingId.value = null }
   width: 240px;
   min-width: 240px;
   height: 100vh;
-  background: #0d0d10;
-  border-right: 1px solid rgba(255,255,255,0.06);
+  background: rgba(244, 248, 255, 0.60);
+  backdrop-filter: blur(22px);
+  -webkit-backdrop-filter: blur(22px);
+  border-right: 1px solid rgba(255, 255, 255, 0.55);
   display: flex;
   flex-direction: column;
   transition: width 0.22s ease, min-width 0.22s ease;
   overflow: hidden;
   flex-shrink: 0;
+  box-shadow: 2px 0 20px rgba(30, 50, 100, 0.07);
 }
 
 .sidebar.collapsed {
@@ -133,13 +136,13 @@ const cancelRename = () => { editingId.value = null }
   justify-content: center;
   background: transparent;
   border: none;
-  color: #4a4a58;
+  color: #7a9eb8;
   cursor: pointer;
   padding: 0.9rem;
   width: 100%;
   transition: color 0.18s, background 0.18s;
 }
-.collapse-btn:hover { color: #9898aa; background: rgba(255,255,255,0.025); }
+.collapse-btn:hover { color: #40627a; background: rgba(70, 130, 180, 0.07); }
 .collapse-btn svg { width: 16px; height: 16px; }
 
 .sidebar-header {
@@ -155,13 +158,13 @@ const cancelRename = () => { editingId.value = null }
   font-weight: 600;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: #6868a0;
+  color: #7a9eb8;
 }
 
 .new-btn {
-  background: rgba(79, 110, 247, 0.15);
-  border: 1px solid rgba(79, 110, 247, 0.25);
-  color: #7a9bff;
+  background: rgba(82, 119, 139, 0.12);
+  border: 1px solid rgba(82, 119, 139, 0.28);
+  color: #52778b;
   border-radius: 7px;
   width: 26px;
   height: 26px;
@@ -171,7 +174,7 @@ const cancelRename = () => { editingId.value = null }
   cursor: pointer;
   transition: background 0.18s, border-color 0.18s;
 }
-.new-btn:hover { background: rgba(79, 110, 247, 0.28); border-color: rgba(79,110,247,0.4); }
+.new-btn:hover { background: rgba(82, 119, 139, 0.22); border-color: rgba(82, 119, 139, 0.45); }
 .new-btn svg { width: 13px; height: 13px; }
 
 .list {
@@ -196,10 +199,11 @@ const cancelRename = () => { editingId.value = null }
   min-width: 0;
   border: 1px solid transparent;
 }
-.item:hover { background: rgba(255,255,255,0.035); }
+.item:hover { background: rgba(255, 255, 255, 0.4); }
 .item.active {
-  background: rgba(255,255,255,0.05);
-  border-color: rgba(255,255,255,0.07);
+  background: rgba(255, 255, 255, 0.55);
+  border-color: rgba(255, 255, 255, 0.7);
+  box-shadow: 0 2px 8px rgba(30, 50, 100, 0.07);
 }
 .item:hover .del-btn { opacity: 1; }
 
@@ -207,7 +211,7 @@ const cancelRename = () => { editingId.value = null }
   flex: 1;
   font-size: 0.82rem;
   font-weight: 400;
-  color: #9898c0;
+  color: #60809a;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -215,14 +219,14 @@ const cancelRename = () => { editingId.value = null }
   user-select: none;
   transition: color 0.14s;
 }
-.item.active .item-title { color: #e0e0f8; }
-.item:hover .item-title  { color: #c0c0e0; }
+.item.active .item-title { color: #182a3a; font-weight: 500; }
+.item:hover .item-title  { color: #28455a; }
 
 .del-btn {
   opacity: 0;
   background: transparent;
   border: none;
-  color: #44444e;
+  color: #90aac4;
   cursor: pointer;
   padding: 2px;
   border-radius: 4px;
@@ -231,15 +235,15 @@ const cancelRename = () => { editingId.value = null }
   flex-shrink: 0;
   transition: opacity 0.14s, color 0.14s;
 }
-.del-btn:hover { color: #d44; }
+.del-btn:hover { color: #c04040; }
 .del-btn svg { width: 12px; height: 12px; }
 
 .rename-input {
   flex: 1;
-  background: rgba(255,255,255,0.06);
-  border: 1px solid rgba(79,110,247,0.4);
+  background: rgba(255, 255, 255, 0.65);
+  border: 1px solid rgba(82, 119, 139, 0.4);
   border-radius: 5px;
-  color: #e0e0ee;
+  color: #182a3a;
   font-size: 0.82rem;
   font-family: inherit;
   padding: 0.2rem 0.4rem;
@@ -250,28 +254,28 @@ const cancelRename = () => { editingId.value = null }
 .sidebar-footer {
   padding: 0.6rem 0.9rem 0.75rem;
   font-size: 0.64rem;
-  color: #2e2e3a;
+  color: #90aac4;
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
   gap: 0.55rem;
 }
 
-.footer-hint { color: #2e2e3a; }
+.footer-hint { color: #90aac4; }
 
 .auto-listen-btn {
   display: flex;
   align-items: center;
   gap: 0.45rem;
   width: 100%;
-  background: rgba(255,255,255,0.03);
-  border: 1px solid rgba(255,255,255,0.07);
+  background: rgba(255, 255, 255, 0.3);
+  border: 1px solid rgba(140, 175, 200, 0.35);
   border-radius: 8px;
   padding: 0.45rem 0.65rem;
   cursor: pointer;
   font-family: inherit;
   font-size: 0.75rem;
-  color: #5a5a72;
+  color: #60809a;
   transition: background 0.18s, border-color 0.18s, color 0.18s;
 }
 
@@ -284,15 +288,15 @@ const cancelRename = () => { editingId.value = null }
 .auto-listen-btn span:nth-child(2) { flex: 1; text-align: left; }
 
 .auto-listen-btn:hover {
-  background: rgba(255,255,255,0.06);
-  border-color: rgba(255,255,255,0.12);
-  color: #9090b8;
+  background: rgba(255, 255, 255, 0.55);
+  border-color: rgba(100, 140, 180, 0.45);
+  color: #38526a;
 }
 
 .auto-listen-btn.active {
-  color: #7a9bff;
-  border-color: rgba(122,155,255,0.3);
-  background: rgba(122,155,255,0.07);
+  color: #52778b;
+  border-color: rgba(82, 119, 139, 0.38);
+  background: rgba(82, 119, 139, 0.1);
 }
 
 .pill {
@@ -304,6 +308,6 @@ const cancelRename = () => { editingId.value = null }
   flex-shrink: 0;
 }
 
-.pill.on  { background: rgba(122,155,255,0.18); color: #7a9bff; }
-.pill.off { background: rgba(255,255,255,0.06); color: #4a4a5e; }
+.pill.on  { background: rgba(82, 119, 139, 0.15); color: #52778b; }
+.pill.off { background: rgba(120, 155, 180, 0.12); color: #7a9eb8; }
 </style>

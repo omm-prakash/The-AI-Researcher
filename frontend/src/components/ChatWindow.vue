@@ -215,27 +215,35 @@ const speak = (msg) => {
 }
 
 .user .bubble {
-  background: #1e2030;
-  border: 1px solid rgba(79, 110, 247, 0.2);
+  background: rgba(34, 162, 231, 0.14);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(130, 165, 200, 0.35);
   border-bottom-right-radius: 4px;
-  color: #ffffff;
+  color: #1a252c;
+  box-shadow: 0 2px 12px rgba(30, 50, 100, 0.1);
 }
 
 .assistant .bubble {
-  background: #131316;
-  border: 1px solid rgba(255,255,255,0.06);
+  background: rgba(240, 248, 255, 0.65);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.7);
   border-bottom-left-radius: 4px;
-  color: #f0f0f8;
+  color: #1a252c;
+  box-shadow: 0 2px 14px rgba(30, 50, 100, 0.08);
 }
 
 .system .bubble {
-  background: rgba(180, 50, 50, 0.08);
-  border: 1px solid rgba(180,50,50,0.2);
-  color: #c87070;
+  background: rgba(210, 230, 255, 0.45);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(80, 130, 200, 0.3);
+  color: #305ba0;
   border-radius: 10px;
 }
 
-/* ── Action bar ────────────────────────────────────────────────────────── */
+/* ── Action bar ─────────────────────────────────────────────────────────── */
 .action-bar {
   display: flex;
   gap: 0.4rem;
@@ -244,47 +252,44 @@ const speak = (msg) => {
   transition: opacity 0.18s;
 }
 
-.msg:hover .action-bar {
-  opacity: 1;
-}
+.msg:hover .action-bar { opacity: 1; }
 
 .action-btn {
   display: flex;
   align-items: center;
   gap: 0.3rem;
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.08);
-  color: #6060a0;
+  background: rgba(240, 248, 255, 0.55);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(140, 175, 200, 0.35);
+  color: #60809a;
   font-size: 0.72rem;
   font-family: inherit;
   padding: 0.25rem 0.65rem;
   border-radius: 20px;
   cursor: pointer;
-  transition: color 0.15s, background 0.15s, border-color 0.15s;
+  transition: all 0.15s;
   white-space: nowrap;
 }
 
-.action-btn svg {
-  width: 12px;
-  height: 12px;
-}
+.action-btn svg { width: 12px; height: 12px; }
 
 .action-btn:hover {
-  color: #a0a0d0;
-  background: rgba(255,255,255,0.07);
-  border-color: rgba(255,255,255,0.14);
+  color: #28455a;
+  background: rgba(255, 255, 255, 0.75);
+  border-color: rgba(100, 140, 180, 0.5);
 }
 
 .action-btn.speaking {
-  color: #7a9bff;
-  border-color: rgba(122, 155, 255, 0.4);
-  background: rgba(122, 155, 255, 0.08);
+  color: #52778b;
+  border-color: rgba(82, 119, 139, 0.45);
+  background: rgba(82, 119, 139, 0.1);
   animation: pulse-tts 1.5s ease-in-out infinite;
 }
 
 @keyframes pulse-tts {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(122, 155, 255, 0); }
-  50%       { box-shadow: 0 0 0 3px rgba(122, 155, 255, 0.18); }
+  0%, 100% { box-shadow: 0 0 0 0 rgba(82, 119, 139, 0); }
+  50%       { box-shadow: 0 0 0 3px rgba(82, 119, 139, 0.18); }
 }
 
 /* ── Attachments ─────────────────────────────────────────────────────── */
@@ -297,14 +302,14 @@ const speak = (msg) => {
 
 .attach-tag {
   font-size: 0.72rem;
-  color: #5a5a6e;
-  background: rgba(255,255,255,0.03);
-  border: 1px solid rgba(255,255,255,0.06);
+  color: #60809a;
+  background: rgba(244, 248, 255, 0.7);
+  border: 1px solid rgba(140, 175, 200, 0.3);
   padding: 0.15rem 0.5rem;
   border-radius: 6px;
 }
 
-/* ── Typing indicator ────────────────────────────────────────────────── */
+/* ── Typing indicator ─────────────────────────────────────────────── */
 .typing {
   display: flex;
   gap: 5px;
@@ -314,28 +319,28 @@ const speak = (msg) => {
 .typing span {
   width: 5px;
   height: 5px;
-  background: #3a3a50;
+  background: rgba(82, 119, 139, 0.45);
   border-radius: 50%;
   animation: bounce 1.3s infinite ease-in-out both;
 }
 .typing span:nth-child(1) { animation-delay: -0.28s; }
 .typing span:nth-child(2) { animation-delay: -0.14s; }
 
-/* ── Markdown ────────────────────────────────────────────────────────── */
+/* ── Markdown ─────────────────────────────────────────────────────── */
 :deep(.markdown-body p)             { margin: 0 0 0.8em; }
 :deep(.markdown-body p:last-child)  { margin-bottom: 0; }
 :deep(.markdown-body ul),
 :deep(.markdown-body ol)            { margin: 0.4em 0; padding-left: 1.4em; }
 :deep(.markdown-body h1),
 :deep(.markdown-body h2),
-:deep(.markdown-body h3)            { margin: 0.8em 0 0.4em; color: #ffffff; }
-:deep(.markdown-body pre)           { background: rgba(0,0,0,0.45); padding: 0.9rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06); overflow-x: auto; }
-:deep(.markdown-body code)          { background: rgba(0,0,0,0.3); padding: 0.15rem 0.35rem; border-radius: 4px; font-size: 0.86em; color: #e8e8f8; }
-:deep(.markdown-body a)             { color: #7a9bff; }
-:deep(.markdown-body strong)        { color: #ffffff; }
+:deep(.markdown-body h3)            { margin: 0.8em 0 0.4em; color: #182a3a; }
+:deep(.markdown-body pre)           { background: rgba(244, 248, 255, 0.75); backdrop-filter: blur(8px); padding: 0.9rem; border-radius: 8px; border: 1px solid rgba(140, 175, 200, 0.25); overflow-x: auto; }
+:deep(.markdown-body code)          { background: rgba(232, 244, 255, 0.8); padding: 0.15rem 0.35rem; border-radius: 4px; font-size: 0.86em; color: #52778b; }
+:deep(.markdown-body a)             { color: #52778b; }
+:deep(.markdown-body strong)        { color: #182a3a; }
 
-/* ── KaTeX ───────────────────────────────────────────────────────────── */
-:deep(.katex)                       { color: #e8e8f8; font-size: 1em; }
+/* ── KaTeX ────────────────────────────────────────────────────────── */
+:deep(.katex)                       { color: #1a252c; font-size: 1em; }
 :deep(.katex-display)               { margin: 0.8em 0; overflow-x: auto; overflow-y: hidden; }
 :deep(.katex-display > .katex)      { font-size: 1.1em; }
 
@@ -349,3 +354,4 @@ const speak = (msg) => {
   40% { transform: scale(1); opacity: 1; }
 }
 </style>
+
