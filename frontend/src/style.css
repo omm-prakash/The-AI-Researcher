@@ -128,20 +128,165 @@ body.dark-mode::before {
   background: transparent;
 }
 
-.brand-main {
+.app-header {
   position: relative;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 1rem 1.5rem;
+  background: transparent;
+  flex-shrink: 0;
+}
+
+.brand-main {
   font-size: 1.1rem;
   font-weight: 700;
   color: var(--text-primary);
   letter-spacing: 0.5px;
-  z-index: 10;
-  flex-shrink: 0;
-  width: 100%;
-  padding: 1rem 1.5rem;
-  background: transparent;
 }
 
-/* ── Header ──────────────────────────────────────────────────────────────── */
+/* ── Auth UI ───────────────────────────────────────────────────────────── */
+.auth-section {
+  position: relative;
+}
+
+.login-btn {
+  background: var(--accent, #52748b);
+  color: #fff;
+  border: none;
+  padding: 0.4rem 1rem;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.1s;
+}
+
+.login-btn:hover {
+  background: var(--accent-light, #80abc4);
+}
+
+.login-btn:active {
+  transform: scale(0.96);
+}
+
+.profile-menu-container {
+  position: relative;
+}
+
+.profile-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+
+.avatar {
+  background: var(--accent, #52748b);
+  color: white;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  font-weight: 700;
+  font-size: 1rem;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  transition: transform 0.15s;
+}
+
+.profile-btn:hover .avatar {
+  transform: scale(1.05);
+  border-color: rgba(255, 255, 255, 0.8);
+}
+
+.profile-dropdown {
+  position: absolute;
+  top: 120%;
+  right: 0;
+  width: 240px;
+  background: var(--bg-from, #ffffff);
+  border: 1px solid var(--glass-border, #e2e8f0);
+  border-radius: 12px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: fade-drop 0.15s ease-out;
+}
+
+@keyframes fade-drop {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.dropdown-header {
+  padding: 1rem;
+  background: var(--glass-subtle, #f8fafc);
+  border-bottom: 1px solid var(--glass-border-s, #e2e8f0);
+  display: flex;
+  flex-direction: column;
+  color: var(--text-primary);
+}
+
+.user-email {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 0.2rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dropdown-meta {
+  padding: 0.5rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  color: var(--text-primary);
+}
+
+.meta-item {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8rem;
+}
+
+.meta-label {
+  color: var(--text-dim);
+  font-weight: 500;
+}
+
+.logout-btn {
+  margin: 0.5rem;
+  padding: 0.5rem;
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.logout-btn:hover {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+/* ── Legacy Header Override ──────────────────────────────────────────────── */
 .header {
   display: flex;
   align-items: center;

@@ -413,7 +413,7 @@ watchEffect(() => {
     position: absolute;
     top: 0.8rem;
     left: 0.8rem;
-    z-index: 50;
+    z-index: 100;
     background: rgba(244, 248, 255, 0.8);
     border: 1px solid rgba(130, 165, 200, 0.4);
     border-radius: 8px;

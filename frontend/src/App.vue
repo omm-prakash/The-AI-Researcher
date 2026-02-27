@@ -1,8 +1,10 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { supabase } from './supabase'
 import ChatWindow from './components/ChatWindow.vue'
 import InputArea from './components/InputArea.vue'
 import ConversationSidebar from './components/ConversationSidebar.vue'
+import AuthModal from './components/AuthModal.vue'
 
 const makeId = () => Math.random().toString(36).substr(2, 9)
 
@@ -60,6 +62,28 @@ const activeController = ref(null)   // tracks in-flight fetch so it can be canc
 const autoListen = ref(true)         // auto-speak new assistant responses
 
 const toggleAutoListen = () => { autoListen.value = !autoListen.value }
+
+// ── Authentication ─────────────────────────────────────────────────────────
+const showAuthModal = ref(false)
+const currentUser = ref(null)
+const profileDropdownOpen = ref(false)
+
+onMounted(() => {
+  // Check initial session
+  supabase.auth.getSession().then(({ data }) => {
+    currentUser.value = data.session?.user || null
+  })
+
+  // Listen for auth changes
+  supabase.auth.onAuthStateChange((_event, session) => {
+    currentUser.value = session?.user || null
+  })
+})
+
+const handleLogout = async () => {
+  await supabase.auth.signOut()
+  profileDropdownOpen.value = false
+}
 
 const cancelRequest = () => {
   if (activeController.value) {
@@ -142,7 +166,7 @@ const sendMessage = async (payload) => {
 </script>
 
 <template>
-  <div class="app-shell">
+  <div class="app-shell" @click="profileDropdownOpen = false">
     <ConversationSidebar
       :conversations="conversations"
       :activeId="activeId"
@@ -156,8 +180,44 @@ const sendMessage = async (payload) => {
 
     <div class="chat-pane">
 
-      <!-- Brand Name in Main Window -->
-      <div class="brand-main">TAR: The AI Researcher</div>
+      <!-- Top Header / Brand & Auth -->
+      <header class="app-header">
+        <div class="brand-main">TAR: The AI Researcher</div>
+        
+        <div class="auth-section">
+          <template v-if="!currentUser">
+            <button class="login-btn" @click="showAuthModal = true">Log In / Sign Up</button>
+          </template>
+          
+          <template v-else>
+            <div class="profile-menu-container" @click.stop>
+              <button class="profile-btn" @click="profileDropdownOpen = !profileDropdownOpen" title="Profile Menu">
+                <div class="avatar">{{ currentUser.user_metadata?.full_name?.charAt(0).toUpperCase() || currentUser.email.charAt(0).toUpperCase() }}</div>
+              </button>
+              
+              <div v-if="profileDropdownOpen" class="profile-dropdown">
+                <div class="dropdown-header">
+                  <strong>{{ currentUser.user_metadata?.full_name || 'User' }}</strong>
+                  <span class="user-email">{{ currentUser.email }}</span>
+                </div>
+                
+                <div class="dropdown-meta">
+                  <div class="meta-item">
+                    <span class="meta-label">Org:</span>
+                    <span class="meta-value">{{ currentUser.user_metadata?.organization || 'N/A' }}</span>
+                  </div>
+                  <div class="meta-item">
+                    <span class="meta-label">Age:</span>
+                    <span class="meta-value">{{ currentUser.user_metadata?.age || 'N/A' }}</span>
+                  </div>
+                </div>
+                
+                <button class="logout-btn" @click="handleLogout">Log Out</button>
+              </div>
+            </div>
+          </template>
+        </div>
+      </header>
 
       <!-- Scrollable body — messages OR centered empty state -->
       <div class="chat-body" id="chat-body">
@@ -199,6 +259,13 @@ const sendMessage = async (payload) => {
       </div>
 
     </div>
+    
+    <!-- Auth Modal Overlay -->
+    <AuthModal 
+      v-if="showAuthModal" 
+      @close="showAuthModal = false" 
+      @auth-success="showAuthModal = false" 
+    />
   </div>
 </template>
 

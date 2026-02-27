@@ -1,5 +1,5 @@
 <script setup>
-import { nextTick, watch, ref } from 'vue'
+import { nextTick, watch, ref, onMounted, onUnmounted } from 'vue'
 import { marked } from 'marked'
 import katex from 'katex'
 import 'katex/dist/katex.min.css'
@@ -15,6 +15,22 @@ const emit = defineEmits(['reask'])
 const bottomAnchor = ref(null)
 const copiedId = ref(null)
 const speakingId = ref(null)   // id of the message currently being spoken
+const activeMsgId = ref(null)  // track which message is tapped on mobile to show actions
+
+// Setup tap-outside to clear active message on mobile
+const handleDocumentClick = (e) => {
+  if (!e.target.closest('.msg')) {
+    activeMsgId.value = null
+  }
+}
+
+onMounted(() => {
+  document.addEventListener('touchstart', handleDocumentClick)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('touchstart', handleDocumentClick)
+})
 
 // Scroll to bottom & auto-speak when messages or waiting state changes
 watch(
@@ -79,11 +95,12 @@ const copyContent = async (msg) => {
     document.body.removeChild(el)
   }
   copiedId.value = msg.id
-  setTimeout(() => { copiedId.value = null }, 2000)
+  setTimeout(() => { copiedId.value = null; activeMsgId.value = null }, 2000)
 }
 
 const reask = (msg) => {
   emit('reask', msg.content)
+  activeMsgId.value = null
 }
 
 // ── Text-to-speech ─────────────────────────────────────────────────────────
@@ -133,7 +150,8 @@ const speak = (msg) => {
     <div
       v-for="msg in messages"
       :key="msg.id"
-      :class="['msg', msg.role]"
+      :class="['msg', msg.role, { 'show-actions': activeMsgId === msg.id }]"
+      @click="activeMsgId = msg.id"
     >
       <div class="bubble markdown-body" v-html="renderMarkdown(msg.content)" />
 
@@ -373,7 +391,14 @@ const speak = (msg) => {
     font-size: 0.95rem; /* Keep at least 16px effective equivalent for readability and tap targets */
   }
   .action-bar {
-    opacity: 1; /* Always show buttons on mobile since hover is unavailable */
+    opacity: 0;
+    transition: opacity 0.2s, max-height 0.2s;
+    max-height: 0;
+    overflow: hidden;
+  }
+  .msg.show-actions .action-bar {
+    opacity: 1; /* Only show buttons on mobile if tapped */
+    max-height: 40px;
   }
 }
 </style>
