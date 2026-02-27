@@ -74,7 +74,7 @@ def setup_logging(level: int = logging.DEBUG) -> None:
     root.addHandler(_error_handler)
 
     # Silence noisy third-party loggers
-    for noisy in ("httpx", "httpcore", "urllib3", "groq", "google", "werkzeug"):
+    for noisy in ("httpx", "httpcore", "urllib3", "groq", "google", "werkzeug", "watchfiles"):
         logging.getLogger(noisy).setLevel(logging.WARNING)
 
     logging.getLogger(__name__).info(
