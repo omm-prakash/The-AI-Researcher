@@ -35,7 +35,8 @@ models_dict = {
 
 import os
 import logging
-from groq import RateLimitError, BadRequestError
+import time
+from groq import RateLimitError, BadRequestError, APIConnectionError
 from langchain_core.rate_limiters import InMemoryRateLimiter
 from langchain_groq import ChatGroq
 from langchain_google_genai import ChatGoogleGenerativeAI
@@ -43,15 +44,16 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 logger = logging.getLogger(__name__)
 
 rate_limiter = InMemoryRateLimiter(
-    requests_per_second=0.5,
-    check_every_n_seconds=0.1,
-    max_bucket_size=3,
+    requests_per_second=2,        # Increased from 0.5 → handles concurrent users
+    check_every_n_seconds=0.05,   # Tighter polling for fairness under load
+    max_bucket_size=10,           # Allow short bursts
 )
 
 # Errors that should trigger a fallback to the next model instead of aborting.
 # - RateLimitError (429): too many requests or quota exceeded
 # - BadRequestError: covers context_length_exceeded (max tokens surpassed)
-FALLBACK_EXCEPTIONS = (RateLimitError, BadRequestError)
+# - APIConnectionError: connection reset by peer under concurrent load
+FALLBACK_EXCEPTIONS = (RateLimitError, BadRequestError, APIConnectionError)
 
 
 def _make_llm(model_name: str, api_key: str, temperature: float = 0.1) -> ChatGroq:
@@ -59,10 +61,11 @@ def _make_llm(model_name: str, api_key: str, temperature: float = 0.1) -> ChatGr
     return ChatGroq(
         model=model_name,
         api_key=api_key,
-        # 0 retries on the same model — fail fast so with_fallbacks() can try the next one
-        max_retries=0,
+        # Allow 2 retries on transient connection errors before switching model
+        max_retries=2,
         rate_limiter=rate_limiter,
         temperature=temperature,
+        timeout=60,  # Hard 60-second timeout per request
     )
 
 

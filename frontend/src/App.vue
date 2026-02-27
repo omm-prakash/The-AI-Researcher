@@ -128,8 +128,8 @@ const fetchConversations = async () => {
         messagesLoaded: false,
         isWaiting: false
       }))
-      activeId.value = conversations.value[0].id
-      await loadHistoryForConversation(activeId.value)
+      // Always start with a fresh blank canvas for the current user session
+      newConversation()
     } else {
       newConversation()
     }
@@ -235,6 +235,7 @@ const sendMessage = async (payload) => {
     if (payload.attachments && payload.attachments.length > 0) {
       const formData = new FormData()
       formData.append('thread_id', conv.threadId)
+      formData.append('user_id', currentUser.value.id)
       formData.append('message', payload.text || 'Analyze attached files')
       payload.attachments.forEach(f => formData.append('files', f))
       requestOptions = { method: 'POST', body: formData, signal: controller.signal }
@@ -242,12 +243,18 @@ const sendMessage = async (payload) => {
       requestOptions = {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ thread_id: conv.threadId, message: payload.text || 'Process request' }),
+        body: JSON.stringify({ 
+          thread_id: conv.threadId, 
+          user_id: currentUser.value.id, 
+          message: payload.text || 'Process request' 
+        }),
         signal: controller.signal,
       }
     }
 
-    const response = await fetch('http://localhost:8000/chat', requestOptions)
+    // Use environment variable for backend URL, fallback to localhost if missing
+    const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
+    const response = await fetch(`${baseUrl}/chat`, requestOptions)
     const data = await response.json()
 
     const target = conversations.value.find(c => c.id === dbConvId)

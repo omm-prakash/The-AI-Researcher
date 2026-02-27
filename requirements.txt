@@ -6,11 +6,10 @@ langchain-groq
 langchain-community
 langchain-google-genai
 langgraph
-langgraph-checkpoint-postgres
-psycopg[binary]
-psycopg-pool
 pydantic
 python-dotenv
 pytest
 tavily-python
 duckduckgo-search
+supabase
+pypdf

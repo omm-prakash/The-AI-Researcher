@@ -1,8 +1,10 @@
 <script setup>
 import { nextTick, watch, ref, onMounted, onUnmounted } from 'vue'
 import { marked } from 'marked'
-import katex from 'katex'
+import markedKatex from 'marked-katex-extension'
 import 'katex/dist/katex.min.css'
+
+marked.use(markedKatex({ throwOnError: false }))
 
 const props = defineProps({
   messages: Array,
@@ -63,29 +65,15 @@ watch(
   }
 )
 
-// ── Math rendering (runs before v-html, no DOM mutation) ─────────────────────
-
-const renderMath = (html) => {
-  html = html.replace(/\\\[([\s\S]+?)\\\]/g, (_, expr) => {
-    try { return katex.renderToString(expr.trim(), { displayMode: true, throwOnError: false, strict: false }) }
-    catch { return _ }
-  })
-  html = html.replace(/\$\$([\s\S]+?)\$\$/g, (_, expr) => {
-    try { return katex.renderToString(expr.trim(), { displayMode: true, throwOnError: false, strict: false }) }
-    catch { return _ }
-  })
-  html = html.replace(/\\\((.+?)\\\)/gs, (_, expr) => {
-    try { return katex.renderToString(expr.trim(), { displayMode: false, throwOnError: false, strict: false }) }
-    catch { return _ }
-  })
-  html = html.replace(/\$([^$\n]+?)\$/g, (_, expr) => {
-    try { return katex.renderToString(expr.trim(), { displayMode: false, throwOnError: false, strict: false }) }
-    catch { return _ }
-  })
-  return html
+// ── Markdown & Math rendering ───────────────────────────────────────────────
+const renderMarkdown = (content) => {
+  try {
+    return marked.parse(content || '')
+  } catch (e) {
+    console.error("Markdown parse error:", e)
+    return content
+  }
 }
-
-const renderMarkdown = (content) => renderMath(marked(content || ''))
 
 const getFileIcon = (filename) => {
   if (!filename) return '📎'
