@@ -33,7 +33,7 @@ def researcher_node(state: AgentState):
     # print(messages[-4:])
     if attachment_context_raw:
         messages = [AIMessage(content=attachment_context_raw)]
-        print('\n\n researcher context', attachment_context_raw)
+        # print('\\n\\n researcher context', attachment_context_raw)
         logger.info("Researcher: attachment context available (%d chars)", len(attachment_context_raw))
         attachment_context = (
             "An attachment has already been processed and analyzed by a specialist subagent and never worry about attachment content"

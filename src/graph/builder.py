@@ -28,7 +28,7 @@ def _route_after_supervisor(state: AgentState) -> str:
     # Respect explicit termination
     if next_agent == "FINISH":
         return "FINISH"
-    print('\n\nattachment_type', attachment_type)
+    # print('\\n\\nattachment_type', attachment_type)
     # If an attachment is present, route to the matching specialist subagent
     # regardless of the Supervisor's text-based routing decision.
     if attachment_type and attachment_type != "none":
@@ -38,10 +38,10 @@ def _route_after_supervisor(state: AgentState) -> str:
             "audio": "AudioAgent",
         }
         routed = attachment_routes.get(attachment_type)
-        print('\n\nrouted to', routed)
+        # print('\\n\\nrouted to', routed)
         if routed:
             return routed
-    print('\n\nnext_agent', next_agent)
+    # print('\\n\\nnext_agent', next_agent)
     # No attachment — use the Supervisor's decision as-is
     return next_agent
 

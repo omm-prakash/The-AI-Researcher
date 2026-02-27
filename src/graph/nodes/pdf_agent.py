@@ -106,5 +106,5 @@ def pdf_agent_node(state: AgentState):
     )
 
     logger.info("PDFAgent: extraction complete → attachment_context set")
-    print('\n\n pdf context', context_block)
+    # print('\\n\\n pdf context', context_block)
     return {"attachment_context": context_block}
