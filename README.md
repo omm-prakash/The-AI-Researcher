@@ -2,7 +2,6 @@
 
 > **High-Level Value Prop**: TAR (The AI Researcher) is an advanced, multi-agent AI system designed to conduct deep, autonomous internet research and process multi-modal attachments (PDFs, Images, Audio). By leveraging a robust, event-driven graph architecture, TAR provides highly accurate, context-aware, and thoroughly researched responses, minimizing hallucinations and maximizing depth.
 
-<!-- ![alt text](ref-images/frontend.png) -->
 <p align="center"><img src="ref-images/frontend.png" width="800"></p>
 
 ---
@@ -11,9 +10,9 @@
 
 TAR employs a **modular frontend-backend separation** to ensure scalability, maintainability, and clear boundaries of concern.
 
-- **Frontend**: A highly responsive, single-page application built with **Vue 3** and **Vite**. It provides a real-time conversational interface designed for low-latency streaming and seamless multi-modal file uploads.
-- **Backend / Engine**: A **Flask-based API** acting as the gateway to our core reasoning engine. The engine itself is an **event-driven state machine** orchestrated via **LangGraph**.
-- **State & Persistence**: Short-term state is managed in-memory as the graph executes, while long-term conversational memory and checkpointing are persisted to **PostgreSQL** (via `langgraph-checkpoint-postgres`), ensuring a fault-tolerant and restorable user session.
+- **Frontend**: A highly responsive, single-page application built with **Vue 3** and **Vite**. It provides a real-time conversational interface designed for low-latency streaming and seamless multi-modal file uploads. It utilizes **Supabase** for user authentication and session management, and **KaTeX** for rendering LaTeX mathematical equations.
+- **Backend / Engine**: A **FastAPI-based API** acting as the gateway to our core reasoning engine. The engine itself is an **event-driven state machine** orchestrated via **LangGraph**, served efficiently via **Uvicorn**.
+- **State & Persistence**: Long-term conversational memory, user profiles, and chat history are persisted to **Supabase** (PostgreSQL under the hood). Short-term state is managed in-memory as the graph executes, with a local TTL cache manager optimizing memory usage and minimizing database roundtrips.
 
 ---
 
@@ -32,7 +31,7 @@ The core intelligence of TAR relies on a sophisticated Multi-Agent architecture.
 - If the request involves casual conversation, it routes to a **Casual Agent**.
 - If it requires deep research, it invokes the **Researcher Agent**.
 
-**Multi-modal Interception:** Crucially, if the payload contains attachments (PDF, Image, Audio), the system circumvents text-only routing and immediately assigns the request to a **Specialist Subagent** (PDFAgent, ImageAgent, or AudioAgent) to preemptively extract context before research begins.
+**Multi-modal Interception:** Crucially, if the payload contains attachments (PDF, Image, Audio), the system circumvents text-only routing and immediately assigns the request to a **Specialist Subagent** (PDFAgent, ImageAgent, or AudioAgent) to preemptively extract context before research begins. Document parsing and multi-modal handling are dynamically addressed by the graph processing.
 
 ### 2. Tool Usage (The Researcher)
 
@@ -48,7 +47,7 @@ TAR's execution is cyclical rather than linear. The Researcher Agent evaluates t
 
 ### 4. Memory Management
 
-Context is securely maintained across turns using **LangGraph Postgres Checkpointers**. Before reaching the text-centric LLMs, older conversational history is automatically trimmed, and multi-modal elements are dynamically flattened to strictly manage context windows and limit token expenditure.
+Context is securely maintained across turns using **Supabase** for persistent chat history. The FastAPI backend employs a **SessionMemoryManager** that caches conversations locally with a TTL mechanism, periodically evicting stale sessions while constantly syncing with Supabase for long-term storage.
 
 ---
 
@@ -58,9 +57,9 @@ Context is securely maintained across turns using **LangGraph Postgres Checkpoin
 | :--- | :--- | :--- |
 | **LangGraph** | Orchestration & Workflow | Chosen for its cyclic state-machine capabilities, enabling true multi-agent looping and reflection. |
 | **LangChain** | LLM Abstraction | Selected for standardized tool-binding and dynamic model fallback integrations. |
-| **Flask + Gunicorn** | Backend API | Chosen for rapid prototyping, robust middleware support, and lightweight deployment. |
-| **PostgreSQL** | Memory & State Persistence | Selected for highly concurrent, transactional guarantees required for LangGraph Checkpointing. |
-| **Vue 3 + Vite** | Frontend Interface | Chosen for its reactive virtual DOM footprint, enabling fast-loading, highly interactive user experiences. |
+| **FastAPI + Uvicorn** | Backend API | Chosen for rapid prototyping, incredible asynchronous performance, and lightweight deployment. |
+| **Supabase** | Memory, State, & Auth | Selected for highly concurrent, serverless-friendly PostgreSQL guarantees, handling both auth and conversational history seamlessly. |
+| **Vue 3 + Vite** | Frontend Interface | Chosen for its reactive virtual DOM footprint, enabling fast-loading, highly interactive user experiences with KaTeX rendering. |
 | **Tavily API** | Search Infrastructure | Selected over standard SERP APIs for its ability to return LLM-optimized search context and raw HTML extraction. |
 
 ---
@@ -71,18 +70,18 @@ TAR is fundamentally model-agnostic but is configured by default to utilize a Mi
 
 - **Logic & Reasoning** (e.g., `qwen3-32b`, `llama-3.3-70b`): Used by the **Supervisor Agent** to break down tasks and make routing decisions, and acts as a fallback for analyzing complex PDF chunks.
 - **Agentic Systems** (e.g., `gpt-oss-20b`, `kimi-k2-instruct`): Leveraged by the **Researcher Agent** for their superior tool-calling and function-binding capabilities.
-- **PDF Understanding** (`gemini-2.5-flash-lite`): Powered by Google GenAI. Selected for its rapid processing speed and massive 20k+ token context window, enabling entire document ingestion in one pass.
-- **Audio & Voice** (e.g., `whisper-large-v3-turbo`): Chosen for industry-leading transcription accuracy by the Audio Agent.
+- **Multi-Modal Understanding** (`gemini-2.5-flash-lite`): Powered by Google GenAI. Selected for its rapid processing speed and massive 20k+ token context window, enabling entire document ingestion in one pass (PDF, Audio, Image).
 - **Safety & Security** (e.g., `llama-prompt-guard-2`, `gpt-oss-safeguard`): Utilized strictly by the Guardrail edge node to classify prompts and prevent prompt injection or policy violations.
 
 ---
 
 ## 🚀 Key Features
 
-- **Multi-Agent Orchestration**: Specialized agents (Supervisor, Researcher, Writer) handling discrete tasks for massively improved output quality.
-- **Multi-Modal Document Ingestion**: Intelligent, format-specific subagents capable of parsing PDFs (via primary extraction with Gemini and fallback chunking reasoning), Images, and Audio files.
+- **Multi-Agent Orchestration**: Specialized agents (Supervisor, Researcher, Writer) handling discrete tasks for massively improved processing and output quality.
+- **Multi-Modal Document Ingestion**: Intelligent, format-specific subagents capable of parsing PDFs, Images, and Audio files via multimodal AI integrations.
 - **Self-Healing Tool Execution**: Automatic failover from Tavily Search to DuckDuckGo if primary endpoints fail, ensuring 100% uptime on research paths.
-- **Persistent Conversational Memory**: Thread-based state management leveraging PostgreSQL allows users to resume deep-dive research sessions across multiple days.
+- **Persistent Conversational Memory**: Thread-based state management leveraging Supabase and local TTL cache allows users to resume deep-dive research sessions across multiple days seamlessly.
+- **Scientific Equation Display**: Native LaTeX rendering in the frontend chat interface to display complex mathematical and scientific contexts.
 
 ---
 
@@ -104,9 +103,10 @@ pip install -r requirements.txt
 
 # Configure Environment Variables
 cp .env.example .env
-# Fill in your GROQ_API_KEY, TAVILY_API_KEY, GOOGLE_API_KEY, and POSTGRES_URL inside .env
+# Important: Fill in your GROQ_API_KEY, TAVILY_API_KEY, GOOGLE_API_KEY, 
+# SUPABASE_URL, and SUPABASE_SERVICE_ROLE_KEY inside .env
 
-# Run the Flask API
+# Run the FastAPI server in Development
 python src/main.py
 ```
 
@@ -119,29 +119,28 @@ cd frontend
 # Install dependencies
 npm install
 
+# Setup Frontend Environment Variables
+# Create a .env file and add your VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY
+
 # Start the Vite development server
 npm run dev
 ```
 
-### 3. LangGraph Agent Debugging Setup
+### 3. Production Deployment
+
+TAR includes basic scripts for deploying the application on a Linux-based Virtual Machine (like AWS EC2, GCP Compute, or OCI Instances) running `pm2`.
 
 ```bash
-
-# Run the LangGraph
-langgraph dev
+# Run the deployment helper (which pulls branch updates, installs deps, and starts pm2 with uvicorn configurations)
+./deploy.sh
 ```
 
 ---
 
 ## 🗺️ Future Roadmap
 
-- **Deployement**:
-    1. Dockerize the application.
-    2. User authentication and security.
-    3. Deploy the application to a cloud platform (e.g., AWS, GCP, Azure).
-    4. Set up a CI/CD pipeline for automated deployment.
 - **Vector Database Integration (RAG)**: Implementing Pinecone to provide persistent, long-term memory mapping of past research sessions, turning TAR into a personalized second brain.
-- **Streaming LLM Responses**: Upgrading the frontend and graph invocation to stream tokens back to the client in real-time, reducing perceived latency.
-- **Containerization & Kubernetes**: Dockerizing the application and writing Helm charts to scale the processing worker nodes in a Kubernetes cluster horizontally.
+- **Dockerization & Kubernetes**: Dockerizing the application and writing Helm charts to scale the processing worker nodes in a Kubernetes cluster horizontally.
+- **Advanced User Authentication**: Integrating more robust enterprise single-sign on (SSO) and granular role-based access.
 
-*I am activly working on the project, will change the README.md file as the project progresses.*
+*I am actively working on the project, and will change the README.md file as the project progresses.*

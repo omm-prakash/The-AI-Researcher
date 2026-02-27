@@ -17,6 +17,7 @@ from typing import Optional, List
 
 from src.graph.builder import build_graph
 from src.utils.memory_manager import memory_manager
+from src.utils.storage_cleanup import storage_cleanup_manager
 from src.middlewares import LoggingMiddleware
 from langchain_core.messages import HumanMessage, AIMessage
 from contextlib import asynccontextmanager
@@ -27,6 +28,8 @@ logger = get_logger(__name__)
 async def lifespan(app: FastAPI):
     # Start the memory manager's cache eviction loop on boot
     memory_manager.start_cleanup()
+    # Start the background task to delete stale contents in storage (every 12hrs)
+    storage_cleanup_manager.start_cleanup()
     yield
 
 app = FastAPI(title="TAR: The AI Researcher API", version="1.0.0", lifespan=lifespan)
