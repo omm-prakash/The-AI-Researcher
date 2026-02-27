@@ -34,17 +34,32 @@ onUnmounted(() => {
 
 // Scroll to bottom & auto-speak when messages or waiting state changes
 watch(
-  [() => props.messages.length, () => props.isWaiting],
-  async ([newLen], [oldLen]) => {
+  () => [...props.messages], // Shallow copy to detect actual array pushes
+  async (newMsgs, oldMsgs) => {
     await nextTick()
     bottomAnchor.value?.scrollIntoView({ behavior: 'smooth', block: 'end' })
 
+    const newLen = newMsgs.length
+    const oldLen = oldMsgs ? oldMsgs.length : 0
+    const added = newLen > oldLen
+
     // Auto-speak the newest assistant message if autoListen is on
-    const added = newLen > (oldLen ?? 0)
-    if (added && props.autoListen && !props.isWaiting) {
-      const last = props.messages[props.messages.length - 1]
-      if (last?.role === 'assistant') speak(last)
+    if (added && props.autoListen) {
+      const last = newMsgs[newMsgs.length - 1]
+      // Only speak if it's from the assistant AND it didn't just come from loading history
+      if (last?.role === 'assistant') {
+        speak(last)
+      }
     }
+  },
+  { deep: true }
+)
+
+watch(
+  () => props.isWaiting,
+  async () => {
+    await nextTick()
+    bottomAnchor.value?.scrollIntoView({ behavior: 'smooth', block: 'end' })
   }
 )
 

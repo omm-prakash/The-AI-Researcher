@@ -16,8 +16,8 @@ const createConversation = () => ({
   isWaiting: false,
 })
 
-const conversations = ref([createConversation()])
-const activeId = ref(conversations.value[0].id)
+const conversations = ref([])
+const activeId = ref(null)
 
 const activeConv = computed(() =>
   conversations.value.find(c => c.id === activeId.value)
@@ -27,7 +27,40 @@ const hasMessages = computed(() =>
   (activeConv.value?.messages?.length ?? 0) > 0
 )
 
-const selectConversation = (id) => { activeId.value = id }
+const loadHistoryForConversation = async (convId) => {
+  const conv = conversations.value.find(c => c.id === convId)
+  if (!conv || conv.messagesLoaded) return
+
+  conv.isWaiting = true
+  try {
+    const { data, error } = await supabase
+      .from('chat_history')
+      .select('role, content, created_at')
+      .eq('conversation_id', convId)
+      .order('created_at', { ascending: true })
+    
+    if (error) throw error
+
+    conv.messages = data.map((msg, idx) => ({
+      id: msg.created_at + '_' + idx,
+      role: msg.role,
+      content: msg.content,
+      attachments: [] // History won't re-download files for now
+    }))
+    conv.messagesLoaded = true
+  } catch (err) {
+    console.error('Failed to load chat history:', err)
+  } finally {
+    conv.isWaiting = false
+  }
+}
+
+const selectConversation = async (id) => { 
+  activeId.value = id
+  if (currentUser.value) {
+    await loadHistoryForConversation(id)
+  }
+}
 
 const newConversation = () => {
   const conv = createConversation()
@@ -35,15 +68,22 @@ const newConversation = () => {
   activeId.value = conv.id
 }
 
-const deleteConversation = (id) => {
+const deleteConversation = async (id) => {
   const idx = conversations.value.findIndex(c => c.id === id)
+  if (idx === -1) return
+
+  // Optimistic UI update
   conversations.value.splice(idx, 1)
+  
   if (conversations.value.length === 0) {
-    const fresh = createConversation()
-    conversations.value.push(fresh)
-    activeId.value = fresh.id
+    newConversation()
   } else if (activeId.value === id) {
     activeId.value = conversations.value[Math.max(0, idx - 1)].id
+  }
+
+  // Delete from Supabase if logged in
+  if (currentUser.value && id && !id.startsWith('temp_')) {
+    await supabase.from('conversations').delete().eq('id', id)
   }
 }
 
@@ -68,15 +108,56 @@ const showAuthModal = ref(false)
 const currentUser = ref(null)
 const profileDropdownOpen = ref(false)
 
+const fetchConversations = async () => {
+  if (!currentUser.value) return
+  
+  try {
+    const { data, error } = await supabase
+      .from('conversations')
+      .select('id, title, created_at')
+      .order('created_at', { ascending: false })
+      
+    if (error) throw error
+
+    if (data && data.length > 0) {
+      conversations.value = data.map(row => ({
+        id: row.id,
+        threadId: row.id, // using DB ID as thread logic
+        title: row.title,
+        messages: [],
+        messagesLoaded: false,
+        isWaiting: false
+      }))
+      activeId.value = conversations.value[0].id
+      await loadHistoryForConversation(activeId.value)
+    } else {
+      newConversation()
+    }
+  } catch (err) {
+    console.error('Failed to load conversations:', err)
+    newConversation()
+  }
+}
+
 onMounted(() => {
   // Check initial session
   supabase.auth.getSession().then(({ data }) => {
     currentUser.value = data.session?.user || null
+    if (currentUser.value) fetchConversations()
+    else newConversation()
   })
 
   // Listen for auth changes
   supabase.auth.onAuthStateChange((_event, session) => {
+    const prevUser = currentUser.value
     currentUser.value = session?.user || null
+    
+    if (currentUser.value && !prevUser) {
+      fetchConversations()
+    } else if (!currentUser.value) {
+      conversations.value = []
+      newConversation()
+    }
   })
 })
 
@@ -99,16 +180,47 @@ const sendMessage = async (payload) => {
   if (!conv) return
 
   const convId = conv.id  // capture ID — used to re-lookup in finally
+  
+  let dbConvId = conv.id
 
-  conv.messages.push({
+  // 1. Create DB Conversation if New
+  if (currentUser.value && (conv.title === 'New Chat' || !conv.id.includes('-'))) {
+    const newTitle = payload.text ? (payload.text.slice(0, 36) + (payload.text.length > 36 ? '…' : '')) : 'New Chat'
+    conv.title = newTitle
+
+    const { data: convData, error: convErr } = await supabase
+      .from('conversations')
+      .insert({ title: newTitle, user_id: currentUser.value.id })
+      .select()
+      .single()
+      
+    if (!convErr && convData) {
+      dbConvId = convData.id
+      conv.id = dbConvId
+      conv.threadId = dbConvId
+      activeId.value = dbConvId
+    }
+  } else if (conv.title === 'New Chat' && payload.text) {
+    conv.title = payload.text.slice(0, 36) + (payload.text.length > 36 ? '…' : '')
+  }
+
+  // 2. Add User Message to UI
+  const userMsg = {
     id: Date.now(),
     role: 'user',
     content: payload.text || '📎 [File Attached]',
     attachments: payload.attachments || [],
-  })
+  }
+  conv.messages.push(userMsg)
 
-  if (conv.title === 'New Chat' && payload.text) {
-    conv.title = payload.text.slice(0, 36) + (payload.text.length > 36 ? '…' : '')
+  // 3. Insert User Message to DB
+  if (currentUser.value) {
+    await supabase.from('chat_history').insert({
+      conversation_id: dbConvId,
+      user_id: currentUser.value.id,
+      role: 'user',
+      content: userMsg.content
+    })
   }
 
   conv.isWaiting = true
@@ -138,16 +250,27 @@ const sendMessage = async (payload) => {
     const response = await fetch('http://localhost:8000/chat', requestOptions)
     const data = await response.json()
 
-    const target = conversations.value.find(c => c.id === convId)
+    const target = conversations.value.find(c => c.id === dbConvId)
     if (target) {
-      target.messages.push({
+      const assistantMsg = {
         id: Date.now() + 1,
         role: response.ok ? 'assistant' : 'system',
         content: response.ok ? data.response : `**Error:** ${data.error || 'Failed to reach API'}`,
-      })
+      }
+      target.messages.push(assistantMsg)
+
+      // Insert Assistant Message to DB
+      if (response.ok && currentUser.value) {
+        await supabase.from('chat_history').insert({
+          conversation_id: dbConvId,
+          user_id: currentUser.value.id,
+          role: 'assistant',
+          content: assistantMsg.content
+        })
+      }
     }
   } catch (err) {
-    const target = conversations.value.find(c => c.id === convId)
+    const target = conversations.value.find(c => c.id === dbConvId)
     if (target && err.name !== 'AbortError') {
       target.messages.push({
         id: Date.now() + 1,
@@ -158,8 +281,8 @@ const sendMessage = async (payload) => {
   } finally {
     clearTimeout(timeoutId)
     activeController.value = null
-    // Re-lookup by ID to guarantee Vue reactivity
-    const target = conversations.value.find(c => c.id === convId)
+    // Re-lookup by newly assigned DB DB to guarantee Vue reactivity
+    const target = conversations.value.find(c => c.id === dbConvId)
     if (target) target.isWaiting = false
   }
 }
