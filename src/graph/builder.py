@@ -12,7 +12,7 @@ def _route_after_supervisor(state: AgentState) -> str:
     """
     Routing logic after the Supervisor decides.
     """
-    next_agent = state.get("next_agent", "FINISH")
+    next_agent = state.get("next_agent", "Casual")
     attachment_type = state.get("attachment_type", "none")
 
     # Respect explicit termination
