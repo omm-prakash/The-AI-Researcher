@@ -113,6 +113,7 @@ body.dark-mode::before {
 .app-shell {
   display: flex;
   height: 100vh;
+  height: 100dvh;
   width: 100%;
   overflow: hidden;
 }
@@ -124,6 +125,7 @@ body.dark-mode::before {
   flex-direction: column;
   min-width: 0;
   height: 100vh;
+  height: 100dvh;
   overflow: hidden;
   background: transparent;
 }
@@ -135,7 +137,7 @@ body.dark-mode::before {
   align-items: center;
   justify-content: space-between;
   width: 100%;
-  padding: 1rem 1.5rem;
+  padding: max(1rem, env(safe-area-inset-top)) 1.5rem 1rem;
   background: transparent;
   flex-shrink: 0;
 }

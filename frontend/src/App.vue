@@ -450,8 +450,11 @@ const sendMessage = async (payload) => {
 /* ── Mobile Responsiveness ── */
 @media (max-width: 768px) {
   .brand-main {
-    padding-left: 4.5rem;
+    padding-left: 3.5rem;
     font-size: 1rem;
+  }
+  .app-header {
+    padding: max(1.2rem, env(safe-area-inset-top)) 1rem 0.5rem;
   }
   .empty-hero {
     padding: 1.5rem 1rem;
@@ -461,7 +464,7 @@ const sendMessage = async (payload) => {
     padding: 3rem 0.5rem 1rem;
   }
   .input-bar {
-    padding: 0.5rem 0.5rem 0.5rem;
+    padding: 0.5rem 0.5rem max(0.5rem, env(safe-area-inset-bottom));
   }
   .footer-note {
     font-size: 0.6rem;

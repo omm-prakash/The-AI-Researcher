@@ -176,6 +176,7 @@ watchEffect(() => {
   width: 240px;
   min-width: 240px;
   height: 100vh;
+  height: 100dvh;
   background: rgba(244, 248, 255, 0.60);
   backdrop-filter: blur(22px);
   -webkit-backdrop-filter: blur(22px);
@@ -343,7 +344,7 @@ watchEffect(() => {
 }
 
 .sidebar-footer {
-  padding: 0.6rem 0.9rem 0.75rem;
+  padding: 0.6rem 0.9rem max(0.75rem, env(safe-area-inset-bottom));
   font-size: 0.64rem;
   color: #617385;
   flex-shrink: 0;
@@ -411,7 +412,7 @@ watchEffect(() => {
   .mobile-open-btn {
     display: flex;
     position: absolute;
-    top: 0.8rem;
+    top: max(1rem, env(safe-area-inset-top));
     left: 0.8rem;
     z-index: 100;
     background: rgba(244, 248, 255, 0.8);
