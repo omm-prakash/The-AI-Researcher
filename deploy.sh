@@ -5,7 +5,7 @@ set -e
 
 # Configuration
 APP_NAME="tar-backend"
-PROJECT_DIR="$HOME/research-agent"
+PROJECT_DIR="$HOME/The-AI-Researcher"
 # PROJECT_DIR="/home/ops/Downloads/The AI Researcher"
 ENTRY_POINT="run_prod.py"
 BRANCH="deployements"
