@@ -242,6 +242,8 @@ const speak = (msg) => {
   border-radius: 14px;
   font-size: 0.9rem;
   line-height: 1.65;
+  word-break: break-word;
+  overflow-x: auto;
 }
 
 .user .bubble {
@@ -368,6 +370,9 @@ const speak = (msg) => {
 :deep(.markdown-body code)          { background: rgba(232, 244, 255, 0.8); padding: 0.15rem 0.35rem; border-radius: 4px; font-size: 0.86em; color: #52778b; }
 :deep(.markdown-body a)             { color: #52778b; }
 :deep(.markdown-body strong)        { color: #182a3a; }
+:deep(.markdown-body table)         { display: block; max-width: 100%; overflow-x: auto; border-collapse: collapse; margin: 1rem 0; font-size: 0.85rem; }
+:deep(.markdown-body th),
+:deep(.markdown-body td)            { padding: 0.5rem 0.8rem; border: 1px solid rgba(140, 175, 200, 0.3); min-width: 110px; vertical-align: top; }
 
 /* ── KaTeX ────────────────────────────────────────────────────────── */
 :deep(.katex)                       { color: #1a252c; font-size: 1em; }
