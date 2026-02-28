@@ -120,6 +120,7 @@ const toggleAutoListen = () => { autoListen.value = !autoListen.value }
 const showAuthModal = ref(false)
 const currentUser = ref(null)
 const profileDropdownOpen = ref(false)
+const dismissGuestBanner = ref(false)
 
 const fetchConversations = async () => {
   if (!currentUser.value) {
@@ -392,8 +393,9 @@ const sendMessage = async (payload) => {
         </div>
       </header>
 
-      <div class="guest-banner" v-if="!currentUser">
-        💬 You are chatting as a guest. <a href="javascript:void(0)" @click="showAuthModal = true">Log in</a> to save your conversations permanently.
+      <div class="guest-banner" v-if="!currentUser && !dismissGuestBanner">
+        <span>💬 You are chatting as a guest. <a href="javascript:void(0)" @click="showAuthModal = true">Log in</a> to save your conversations permanently.</span>
+        <button class="dismiss-banner-btn" @click="dismissGuestBanner = true" title="Dismiss">✕</button>
       </div>
 
       <!-- Scrollable body — messages OR centered empty state -->
@@ -498,16 +500,34 @@ const sendMessage = async (payload) => {
   background-color: #fdf3cb8d;
   color: #856404;
   padding: 0.6rem 1rem;
-  text-align: center;
   font-size: 0.85rem;
   border-bottom: 1px solid #ffeebac7;
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
 }
 .guest-banner a {
   color: #856404;
   font-weight: bold;
   text-decoration: underline;
   cursor: pointer;
+}
+.dismiss-banner-btn {
+  background: transparent;
+  border: none;
+  color: #856404;
+  font-size: 1.1rem;
+  line-height: 1;
+  position: absolute;
+  right: 1rem;
+  cursor: pointer;
+  opacity: 0.6;
+  transition: opacity 0.2s;
+}
+.dismiss-banner-btn:hover {
+  opacity: 1;
 }
 
 /* ── Mobile Responsiveness ── */
