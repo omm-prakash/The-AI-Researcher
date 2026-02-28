@@ -27,7 +27,7 @@ from src.graph.prompts import _GUARD_SYSTEM
 # )
 
 _BLOCKED_RESPONSE = (
-    "I cannot process requests containing inappropriate or sensitive content. "
+    "🚫 Sorry, I cannot process requests containing inappropriate or sensitive content. "
     "Please rephrase your query."
 )
 
