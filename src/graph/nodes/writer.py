@@ -11,33 +11,36 @@ logger = get_logger(__name__)
 
 def writer_node(state: AgentState):
     logger.info("── Writer ── composing final response")
-    messages = flatten_for_text_llm(trim_history(state.get("messages", [])))
+    # messages = flatten_for_text_llm(trim_history(state.get("messages", [])))
 
     # Remove ToolMessages and AIMessages that contain tool_calls.
     # The Writer is a plain text LLM — passing tool-call messages causes
     # Groq to try calling non-existent tools.
-    clean_messages = []
-    for msg in messages:
-        if isinstance(msg, ToolMessage):
-            continue
-        if isinstance(msg, AIMessage) and msg.tool_calls:
-            if msg.content and isinstance(msg.content, str) and msg.content.strip():
-                clean_messages.append(AIMessage(content=msg.content))
-            continue
-        clean_messages.append(msg)
+    # clean_messages = []
+    clean_messages = [state.get("messages", None)[-1]]  
+    print('clean_messages', clean_messages)
+    # for msg in messages:
+    #     if isinstance(msg, ToolMessage):
+    #         continue
+    #     if isinstance(msg, AIMessage) and msg.tool_calls:
+    #         if msg.content and isinstance(msg.content, str) and msg.content.strip():
+    #             clean_messages.append(AIMessage(content=msg.content))
+    #         continue
+    #     clean_messages.append(msg)
 
-    if not clean_messages:
-        logger.warning("Writer: all messages filtered out — falling back to last HumanMessage")
-        clean_messages = [m for m in messages if isinstance(m, HumanMessage)][-1:]
+    # if not clean_messages:
+    #     logger.warning("Writer: all messages filtered out — falling back to last HumanMessage")
+    #     clean_messages = [m for m in messages if isinstance(m, HumanMessage)][-1:]
 
     logger.debug("Writer: %d clean messages passed to LLM", len(clean_messages))
 
     llm = get_llm("logic-reasoning")
     prompt = ChatPromptTemplate.from_messages([
         ("system", WRITER_PROMPT),
-        ("placeholder", "{messages}"),
+        # ("placeholder", "{messages}"),
     ])
 
+    print('clean_messages', len(clean_messages))
     try:
         chain = prompt | llm
         response = chain.invoke({"messages": clean_messages})
