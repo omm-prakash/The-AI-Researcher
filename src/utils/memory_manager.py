@@ -41,7 +41,7 @@ class SessionMemoryManager:
             now = time.time()
             stale_threads = [
                 tid for tid, data in self.cache.items()
-                if now - data["last_accessed"] > self.ttl_seconds
+                if (now - data["last_accessed"] > self.ttl_seconds) and (data.get("user_id") != "anonymous")
             ]
             for tid in stale_threads:
                 del self.cache[tid]
@@ -62,7 +62,7 @@ class SessionMemoryManager:
         logger.info(f"MemoryManager: Cache miss for thread {thread_id}. Fetching from Supabase.")
         messages = []
         
-        if self.supabase:
+        if self.supabase and user_id != 'anonymous':
             try:
                 # Query history, ordered by creation time
                 response = self.supabase.table("chat_history") \
@@ -83,7 +83,8 @@ class SessionMemoryManager:
         
         self.cache[thread_id] = {
             "messages": messages,
-            "last_accessed": now
+            "last_accessed": now,
+            "user_id": user_id
         }
         return list(messages)
 
@@ -94,6 +95,28 @@ class SessionMemoryManager:
         if thread_id in self.cache:
             self.cache[thread_id]["messages"].extend(new_messages)
             self.cache[thread_id]["last_accessed"] = time.time()
+            
+    def delete_session(self, thread_id: str):
+        """
+        Deletes a session from the cache.
+        """
+        if thread_id in self.cache:
+            del self.cache[thread_id]
+            logger.info(f"MemoryManager: Deleted session {thread_id} from cache.")
+
+    def clear_stale_anonymous_sessions(self, max_age_seconds: int = 43200):
+        """
+        Clears anonymous sessions older than max_age_seconds (default 12 hours) to avoid memory leaks.
+        """
+        now = time.time()
+        stale = [
+            tid for tid, data in self.cache.items()
+            if data.get("user_id") == "anonymous" and (now - data["last_accessed"] > max_age_seconds)
+        ]
+        for tid in stale:
+            del self.cache[tid]
+        if stale:
+            logger.info(f"MemoryManager: Cleared {len(stale)} stale anonymous sessions.")
 
 # Global instance
 memory_manager = SessionMemoryManager()

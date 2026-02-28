@@ -60,5 +60,9 @@ class StorageCleanupManager:
         else:
             logger.debug("StorageCleanupManager: Cleanup finished. No items to delete.")
 
+        # Also clear generic anonymous sessions that leaked because session wasn't closed by the user
+        from src.utils.memory_manager import memory_manager
+        memory_manager.clear_stale_anonymous_sessions()
+
 # Global instance
 storage_cleanup_manager = StorageCleanupManager()

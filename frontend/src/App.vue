@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { supabase } from './supabase'
 import ChatWindow from './components/ChatWindow.vue'
 import InputArea from './components/InputArea.vue'
@@ -14,6 +14,7 @@ const createConversation = () => ({
   title: 'New Chat',
   messages: [],
   isWaiting: false,
+  timestamp: Date.now(),
 })
 
 const conversations = ref([])
@@ -26,6 +27,14 @@ const activeConv = computed(() =>
 const hasMessages = computed(() =>
   (activeConv.value?.messages?.length ?? 0) > 0
 )
+
+const sortedConversations = computed(() => {
+  return [...conversations.value].sort((a, b) => {
+    const tA = a.created_at ? new Date(a.created_at).getTime() : (a.timestamp || 0)
+    const tB = b.created_at ? new Date(b.created_at).getTime() : (b.timestamp || 0)
+    return tB - tA
+  })
+})
 
 const loadHistoryForConversation = async (convId) => {
   const conv = conversations.value.find(c => c.id === convId)
@@ -84,6 +93,10 @@ const deleteConversation = async (id) => {
   // Delete from Supabase if logged in
   if (currentUser.value && id && !id.startsWith('temp_')) {
     await supabase.from('conversations').delete().eq('id', id)
+  } else if (!currentUser.value && id) {
+    // Free backend memory associated with guest session
+    const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
+    fetch(`${baseUrl}/chat/session/${id}`, { method: 'DELETE' }).catch(err => console.error(err))
   }
 }
 
@@ -109,7 +122,19 @@ const currentUser = ref(null)
 const profileDropdownOpen = ref(false)
 
 const fetchConversations = async () => {
-  if (!currentUser.value) return
+  if (!currentUser.value) {
+    const guestData = sessionStorage.getItem('guest_conversations')
+    if (guestData) {
+      try {
+        const parsed = JSON.parse(guestData)
+        conversations.value = parsed.filter(c => c.messages && c.messages.length > 0)
+      } catch (err) {
+        console.error('Failed to parse guest conversations:', err)
+      }
+    }
+    newConversation()
+    return
+  }
   
   try {
     const { data, error } = await supabase
@@ -143,8 +168,7 @@ onMounted(() => {
   // Check initial session
   supabase.auth.getSession().then(({ data }) => {
     currentUser.value = data.session?.user || null
-    if (currentUser.value) fetchConversations()
-    else newConversation()
+    fetchConversations()
   })
 
   // Listen for auth changes
@@ -153,12 +177,29 @@ onMounted(() => {
     currentUser.value = session?.user || null
     
     if (currentUser.value && !prevUser) {
+      // User just logged in
       fetchConversations()
-    } else if (!currentUser.value) {
+    } else if (!currentUser.value && prevUser) {
+      // User just logged out
       conversations.value = []
+      sessionStorage.removeItem('guest_conversations')
+      sessionStorage.removeItem('guest_active_id')
       newConversation()
     }
   })
+})
+
+// Persist guest state automatically
+watch(conversations, () => {
+  if (!currentUser.value) {
+    sessionStorage.setItem('guest_conversations', JSON.stringify(conversations.value))
+  }
+}, { deep: true })
+
+watch(activeId, () => {
+  if (!currentUser.value && activeId.value) {
+    sessionStorage.setItem('guest_active_id', activeId.value)
+  }
 })
 
 const handleLogout = async () => {
@@ -231,11 +272,13 @@ const sendMessage = async (payload) => {
   const timeoutId = setTimeout(() => controller.abort(), 90_000) // 90-second cap
 
   try {
+    const backendUserId = currentUser.value ? currentUser.value.id : 'anonymous'
+    
     let requestOptions = {}
     if (payload.attachments && payload.attachments.length > 0) {
       const formData = new FormData()
       formData.append('thread_id', conv.threadId)
-      formData.append('user_id', currentUser.value.id)
+      formData.append('user_id', backendUserId)
       formData.append('message', payload.text || 'Analyze attached files')
       payload.attachments.forEach(f => formData.append('files', f))
       requestOptions = { method: 'POST', body: formData, signal: controller.signal }
@@ -245,7 +288,7 @@ const sendMessage = async (payload) => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           thread_id: conv.threadId, 
-          user_id: currentUser.value.id, 
+          user_id: backendUserId, 
           message: payload.text || 'Process request' 
         }),
         signal: controller.signal,
@@ -298,7 +341,7 @@ const sendMessage = async (payload) => {
 <template>
   <div class="app-shell" @click="profileDropdownOpen = false">
     <ConversationSidebar
-      :conversations="conversations"
+      :conversations="sortedConversations"
       :activeId="activeId"
       :autoListen="autoListen"
       @select="selectConversation"
@@ -348,6 +391,10 @@ const sendMessage = async (payload) => {
           </template>
         </div>
       </header>
+
+      <div class="guest-banner" v-if="!currentUser">
+        💬 You are chatting as a guest. <a href="javascript:void(0)" @click="showAuthModal = true">Log in</a> to save your conversations permanently.
+      </div>
 
       <!-- Scrollable body — messages OR centered empty state -->
       <div class="chat-body" id="chat-body">
@@ -445,6 +492,22 @@ const sendMessage = async (payload) => {
 @keyframes glow {
   0%, 100% { opacity: 0.4; }
   50%       { opacity: 1; }
+}
+
+.guest-banner {
+  background-color: #fdf3cb8d;
+  color: #856404;
+  padding: 0.6rem 1rem;
+  text-align: center;
+  font-size: 0.85rem;
+  border-bottom: 1px solid #ffeebac7;
+  flex-shrink: 0;
+}
+.guest-banner a {
+  color: #856404;
+  font-weight: bold;
+  text-decoration: underline;
+  cursor: pointer;
 }
 
 /* ── Mobile Responsiveness ── */

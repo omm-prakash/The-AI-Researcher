@@ -34,19 +34,19 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="TAR: The AI Researcher API", version="1.0.0", lifespan=lifespan)
 
-# # Enable CORS for the local Vite frontend and Vercel production deployment
-# app.add_middleware(
-#     CORSMiddleware,
-#     allow_origins=[
-#         "http://localhost:5173",            # Vite default local port
-#         "http://localhost:3000",            # Alternative local port
-#         "https://the-ai-researcher.vercel.app", # Production Vercel domain
-#         "*"                                 # Allow all (optional for development, consider restricting in highly secure prod)
-#     ],
-#     allow_credentials=True,
-#     allow_methods=["*"],
-#     allow_headers=["*"],
-# )
+# Enable CORS for the local Vite frontend and Vercel production deployment
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:5173",            # Vite default local port
+        "http://localhost:3000",            # Alternative local port
+        "https://the-ai-researcher.vercel.app", # Production Vercel domain
+        "*"                                 # Allow all (optional for development, consider restricting in highly secure prod)
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Add request timing/logging middleware
 app.add_middleware(LoggingMiddleware)
@@ -163,6 +163,13 @@ async def chat_endpoint(request: Request):
         logger.warning("/chat no response generated for thread=%s", thread_id)
 
     return JSONResponse(content={"response": final_response, "thread_id": thread_id})
+
+
+# ── Delete Session memory ───────────────────────────────────────────────────
+@app.delete("/chat/session/{thread_id}")
+async def delete_chat_session(thread_id: str):
+    memory_manager.delete_session(thread_id)
+    return {"status": "ok", "message": f"Session {thread_id} cleared from memory"}
 
 
 # ── Health check ──────────────────────────────────────────────────────────────
