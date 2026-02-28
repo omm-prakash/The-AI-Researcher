@@ -45,8 +45,8 @@ def supervisor_node(state: AgentState):
 
         import re
         match = re.search(r'"failed_generation":\s*"([^"]*)"', error_str)
-        failed_generation = match.group(1) if match else 'Sorry, I cannot answer this query.'
-
+        failed_generation = match.group(1) if match else '🚫 Sorry, I cannot answer this query.'
+        print('failed_generation', failed_generation)
         from langchain_core.messages import RemoveMessage
         last_msg_id = messages[-1].id
         logger.warning("Supervisor: returning FINISH with error_response")
@@ -55,5 +55,6 @@ def supervisor_node(state: AgentState):
             "next_agent": "FINISH",
             "error_response": failed_generation
         }
-
-    return {"next_agent": next_agent, "error_response": ""}
+    print('next_agent', next_agent)
+    error_response = "🚫 Sorry, I cannot answer this query." if next_agent=='FINISH' else ""
+    return {"next_agent": next_agent, "error_response": error_response}

@@ -6,141 +6,167 @@
 
 ---
 
-## 🏗️ System Architecture
+## 🏗️ Entire System Design (User Flow)
 
-TAR employs a **modular frontend-backend separation** to ensure scalability, maintainability, and clear boundaries of concern.
+The infrastructure follows a modular, serverless-friendly design combining a Vue front-end with a stateful Python backend, secured by external Auth providers and accelerated by specialized LLM clusters.
 
-- **Frontend**: A highly responsive, single-page application built with **Vue 3** and **Vite**. It provides a real-time conversational interface designed for low-latency streaming and seamless multi-modal file uploads. It utilizes **Supabase** for user authentication and session management, and **KaTeX** for rendering LaTeX mathematical equations.
-- **Backend / Engine**: A **FastAPI-based API** acting as the gateway to our core reasoning engine. The engine itself is an **event-driven state machine** orchestrated via **LangGraph**, served efficiently via **Uvicorn**.
-- **State & Persistence**: Long-term conversational memory, user profiles, and chat history are persisted to **Supabase** (PostgreSQL under the hood). Short-term state is managed in-memory as the graph executes, with a local TTL cache manager optimizing memory usage and minimizing database roundtrips.
+1. **User Interface (Vue 3)**: A user navigates to the Vercel-hosted frontend or local server. The `App.vue` checks authentication status via `supabase.js`. The user initiates a request (with or without attachments) to the `InputArea.vue`.
+2. **Payload Transmission**: The frontend hits the backend's `/api/chat` route (served by FastAPI in `main.py`). If an image, audio, or PDF file is provided, it is securely transmitted to the server.
+3. **Memory & State Retrieval**: Over in the backend, `middlewares.py` and the `SessionMemoryManager` jump in. Using the session ID, the memory manager pulls down any required conversational context from **Supabase** (acting as long-term memory) and loads it into a rapid TTL cache.
+4. **LangGraph Execution (The Brain)**: The request is pushed into the compiled LangGraph execution loop defined in `builder.py`.
+5. **LLM Invocations**: Nodes within the graph ping the `get_llm()` mappings from `llms.py`. Simple logic functions are routed to instantaneous models like Groq Llama/Qwen MoEs, while heavy parsing might route to Google GenAI for massive context ingestion.
+6. **Delivery & Persistence**: Once the graph yields the final output, the text streams back to the frontend. The `ChatWindow.vue` interprets markdown tables, KaTeX algorithms, and syntax-highlighted code blocks dynamically. In the background, `memory_manager.py` syncs the new dialog turn back up to Supabase.
 
 ---
 
-## 🧠 Agentic Workflow & Reasoning
+## 🧠 Agentic Workflow
 
-The core intelligence of TAR relies on a sophisticated Multi-Agent architecture. Unlike linear chains, TAR functions as an autonomous research team, exhibiting continuous evaluation, tool use, and reflection.
+TAR’s intelligence relies on continuous evaluation and tool use, breaking away from linear generation loops.
+
+1. **Guardrail Check**: Every message hits `guardrail.py` to filter malicious intents or system jailbreaks.
+2. **The Supervisor Router**: `supervisor.py` intercepts the query.
+   - *If an attachment exists*, the Supervisor forces routing to the **Researcher**.
+   - *If no attachment exists*, it deduces whether the query is conversational (routes to **Casual**) or complex (routes to **Researcher**).
+3. **The Researcher loop**: `researcher.py` looks at the state. Based on the file attached, it is dynamically granted access to `pdf_extractor_tool`, `image_extractor_tool`, or `audio_extractor_tool`.
+4. **Information Gathering**: The Researcher autonomously determines if it needs internet context using `tavily_search` or `tavily_extract`, or if it should analyze the attached files using its vision/audio/parsing tools.
+5. **Synthesis**: Once the Researcher has accumulated all necessary context, it executes the `writer_tool.py`—providing strict guidelines on what tone to use, what data to leverage, and what final layout to construct.
+
+### 🛠️ Agent Tools Overview
+
+The Researcher agent employs a dynamically bound set of tools based on the user's explicit request and the attached context:
+
+- **`tavily_search`**: The primary web navigation tool. Used to natively search the internet for exact answers, verified news, or academic context.
+- **`tavily_extract`**: The deep-dive crawler. Used after a search when the agent identifies a specific URL that it needs to read entirely.
+- **`pdf_extractor_tool`**: Assigned dynamically when a user uploads a `.pdf`. Parses dense document text using Gemini Flash and chunk-wise LLM evaluations.
+- **`image_extractor_tool`**: Assigned dynamically when a user uploads images (`.jpg`, `.png`, etc). Leverages Groq-hosted MoE Llama Vision models to answer visual questions or transcribe text from pictures.
+- **`audio_extractor_tool`**: Assigned dynamically when a user uploads audio (`.mp3`, `.wav`). Streams the file to Groq's Whisper-v3 model for instant transcription and analysis.
+- **`writer_tool`**: The final formatting tool. The Researcher is forced to call this tool once it finishes its investigation, instructing the writer on exactly what to output.
 
 <p align="center">
 <img src="ref-images/workflow.png" >
 </p>
 
-### 1. Planning & Routing (The Supervisor)
+---
 
-- When a request enters the system, it is first evaluated by a **Guardrail** node for safety.
-- If approved, the **Supervisor Agent** (powered by Logic/Reasoning LLMs) takes over. The Supervisor analyzes the intent and dynamically determines the optimal execution path.
-- If the request involves casual conversation, it routes to a **Casual Agent**.
-- If it requires deep research, it invokes the **Researcher Agent**.
+## 📁 Directory Tree
 
-**Multi-modal Interception:** Crucially, if the payload contains attachments (PDF, Image, Audio), the system circumvents text-only routing and immediately assigns the request to a **Specialist Subagent** (PDFAgent, ImageAgent, or AudioAgent) to preemptively extract context before research begins. Document parsing and multi-modal handling are dynamically addressed by the graph processing.
-
-### 2. Tool Usage (The Researcher)
-
-The **Researcher Agent** is the workhorse of the graph. It is bound to multiple tools:
-
-- **Web Search**: Primary tool for AI-optimized, deterministic internet searches.
-- **Web Extract**: Used selectively to scrape and parse full raw content from targeted, high-value URLs.
-- *Fallback Mechanism*: If Tavily fails or hits rate limits, the agent autonomously falls back to a **DuckDuckGo** search integration to ensure fault tolerance.
-
-### 3. Reflection & Looping
-
-TAR's execution is cyclical rather than linear. The Researcher Agent evaluates the results from its tool calls. If the scraped data is insufficient, it formulates new queries and loops back to the search tools. Once it confidently holds the required knowledge, the internal state shifts and hands off to the **Writer Agent**, which synthesizes the raw data into a polished, definitive answer.
-
-### 4. Memory Management
-
-Context is securely maintained across turns using **Supabase** for persistent chat history. The FastAPI backend employs a **SessionMemoryManager** that caches conversations locally with a TTL mechanism, periodically evicting stale sessions while constantly syncing with Supabase for long-term storage.
+```text
+The-AI-Researcher/
+├── README.md                        ## Main project documentation
+├── requirements.txt                 ## Python dependencies
+├── environment.yml                  ## Conda environment configuration
+├── deploy.sh                        ## Shell script for automated PM2 production deployments
+├── src/                             ## Backend Source Code (Python/FastAPI/LangGraph)
+│   ├── main.py                       # FastAPI application entry point; exposes /api/chat
+│   ├── middlewares.py                # CORS and request interception logic
+│   ├── graph/                        # Core Agentic Logic & State Machine
+│   │   ├── builder.py                  # LangGraph configuration, nodes setup, and edge routing
+│   │   ├── llms.py                     # LLM initialization (Groq, Google GenAI) mapped by capability
+│   │   ├── prompts.py                  # System prompts managing personality and strict AI constraints
+│   │   ├── state.py                    # LangGraph AgentState typing definitions
+│   │   └── nodes/                      # Individual Agent Nodes
+│   │       ├── casual.py                # Handles simple chitchat
+│   │       ├── guardrail.py             # First-pass moderation and prompt injection protection
+│   │       ├── researcher.py            # The master agent coordinating tool usage and file analysis
+│   │       └── supervisor.py            # The Router; judges intent and delegates tasks
+│   ├── tools/                        # Agent Capabilities
+│   │   ├── file_extractors.py          # Wraps PDF, Vision, and Whisper extraction logic for attachments
+│   │   ├── search.py                   # Internet access via Tavily/DuckDuckGo
+│   │   └── writer_tool.py              # Used by Researcher to synthesize final output
+│   └── utils/                        # Helper Modules
+│       ├── context.py                  # Chat history trimming and optimization
+│       ├── logger.py                   # Standardized application logging
+│       ├── memory_manager.py           # Local TTL caching & Supabase synchronization
+│       ├── pdf.py                      # PDF PyMuPDF text parsing helper
+│       └── storage_cleanup.py          # Cleans up temporary files generated during requests
+└── frontend/                        ## Frontend Source Code (Vue 3/Vite)
+    ├── index.html                    # Vue app entry point
+    ├── package.json                  # Node dependencies
+    ├── vite.config.js                # Vite build and proxy settings
+    └── src/
+        ├── App.vue                     # Root component: manages layout, auth state, and dynamic routing
+        ├── main.js                     # Vue initialization
+        ├── style.css                   # Global design system and layout constraints
+        ├── supabase.js                 # Supabase client instantiation
+        └── components/                 # Reusable UI Elements
+            ├── AuthModal.vue            # Email/Password login flows
+            ├── ChatWindow.vue           # Renders markdown, KaTeX math, and conversation bubbles
+            ├── ConversationSidebar.vue  # Fetches and lists historical chat sessions
+            └── InputArea.vue            # Handles local file uploads, text entry, and submission
+```
 
 ---
 
-## 🛠️ Tech Stack
+## 🏛️ Infrastructure: Oracle Cloud (OCI) - E2.1.Micro
 
-| Technology | Purpose | Selection Rationale |
-| :--- | :--- | :--- |
-| **LangGraph** | Orchestration & Workflow | Chosen for its cyclic state-machine capabilities, enabling true multi-agent looping and reflection. |
-| **LangChain** | LLM Abstraction | Selected for standardized tool-binding and dynamic model fallback integrations. |
-| **FastAPI + Uvicorn** | Backend API | Chosen for rapid prototyping, incredible asynchronous performance, and lightweight deployment. |
-| **Supabase** | Memory, State, & Auth | Selected for highly concurrent, serverless-friendly PostgreSQL guarantees, handling both auth and conversational history seamlessly. |
-| **Vue 3 + Vite** | Frontend Interface | Chosen for its reactive virtual DOM footprint, enabling fast-loading, highly interactive user experiences with KaTeX rendering. |
-| **Tavily API** | Search Infrastructure | Selected over standard SERP APIs for its ability to return LLM-optimized search context and raw HTML extraction. |
+**Status:** Production Live (HTTPS Secured)
+
+### 1. Executive Summary
+
+This report documents the end-to-end deployment of "The AI Researcher," a full-stack AI agent. The primary challenge was engineering a stable environment within the constraints of a free-tier virtual machine (1GB RAM) while ensuring secure, high-speed communication between a Vercel-hosted frontend and an OCI-hosted FastAPI backend.
+
+### 2. The Infrastructure Stack (Zero-Cost Architecture)
+
+- **Compute:** Oracle Cloud E2.1.Micro (1 OCPU, 1GB RAM, x86_64).
+- **OS:** Ubuntu 22.04 LTS.
+- **Networking:** DuckDNS (Dynamic DNS) for a custom domain.
+- **Security:** Let’s Encrypt (Certbot) for SSL/TLS termination.
+- **Web Server:** Nginx (Reverse Proxy).
+- **Process Manager:** PM2 (Node-based process management for Python).
+- **Persistence:** Supabase (PostgreSQL + Auth).
+- **Inference:** Groq API & Google GenAI (External).
+
+### 3. Deployment Strategy
+
+#### A. Memory Stabilization (The Swap Hack)
+
+The E2.1.Micro instance has only 1GB of physical RAM, which is insufficient for Python's memory spikes during dependency installation or AI processing.
+**Solution:** We allocated a 4GB Swap File on the SSD. This allowed the system to use disk space as "emergency RAM," preventing the server from freezing during `pip install` or heavy API traffic.
+
+#### B. Process Management
+
+To ensure 24/7 uptime, we utilized PM2.
+**Strategy:** PM2 monitors the FastAPI process. If the application crashes or the server reboots, PM2 automatically restarts the backend in milliseconds.
+**Uvicorn Tuning:** We configured Uvicorn with `limit_max_requests=500` and `workers=1` to recycle memory frequently and stay within the strict CPU limits.
+
+#### C. The Reverse Proxy (Nginx)
+
+Nginx was configured to handle the "Front Door" of the server. It manages SSL encryption (HTTPS) and routes traffic:
+
+- Static files/Frontend requests are handled at the root `/`.
+- API requests are proxied internally to `localhost:8000`.
 
 ---
 
-## 🤖 Default LLMs and Model Routing
+## 💻 Getting Started Commands
 
-TAR is fundamentally model-agnostic but is configured by default to utilize a Mixture of Experts (MoE) approach via Groq and Google GenAI. Models are categorized by their specific strengths:
-
-- **Logic & Reasoning** (e.g., `qwen3-32b`, `llama-3.3-70b`): Used by the **Supervisor Agent** to break down tasks and make routing decisions, and acts as a fallback for analyzing complex PDF chunks.
-- **Agentic Systems** (e.g., `gpt-oss-20b`, `kimi-k2-instruct`): Leveraged by the **Researcher Agent** for their superior tool-calling and function-binding capabilities.
-- **Multi-Modal Understanding** (`gemini-2.5-flash-lite`): Powered by Google GenAI. Selected for its rapid processing speed and massive 20k+ token context window, enabling entire document ingestion in one pass (PDF, Audio, Image).
-- **Safety & Security** (e.g., `llama-prompt-guard-2`, `gpt-oss-safeguard`): Utilized strictly by the Guardrail edge node to classify prompts and prevent prompt injection or policy violations.
-
----
-
-## 🚀 Key Features
-
-- **Multi-Agent Orchestration**: Specialized agents (Supervisor, Researcher, Writer) handling discrete tasks for massively improved processing and output quality.
-- **Multi-Modal Document Ingestion**: Intelligent, format-specific subagents capable of parsing PDFs, Images, and Audio files via multimodal AI integrations.
-- **Self-Healing Tool Execution**: Automatic failover from Tavily Search to DuckDuckGo if primary endpoints fail, ensuring 100% uptime on research paths.
-- **Persistent Conversational Memory**: Thread-based state management leveraging Supabase and local TTL cache allows users to resume deep-dive research sessions across multiple days seamlessly.
-- **Scientific Equation Display**: Native LaTeX rendering in the frontend chat interface to display complex mathematical and scientific contexts.
-
----
-
-## 💻 Getting Started
-
-### 1. Backend Setup
+**Backend:**
 
 ```bash
-# Clone the repository
-git clone https://github.com/omm-prakash/The-AI-Researcher.git
-cd The-AI-Researcher
-
-# Create and activate a virtual environment
-python -m venv venv
-source venv/bin/activate  # On Windows use: venv\Scripts\activate
-
-# Install requirements
+python -m venv venv # ensure >=python3.11
+source venv/bin/activate
 pip install -r requirements.txt
-
-# Configure Environment Variables
-cp .env.example .env
-# Important: Fill in your GROQ_API_KEY, TAVILY_API_KEY, GOOGLE_API_KEY, 
-# SUPABASE_URL, and SUPABASE_SERVICE_ROLE_KEY inside .env
-
-# Run the FastAPI server in Development
+cp .env.example .env # Configure keys
 python src/main.py
 ```
 
-### 2. Frontend Setup
+**Frontend:**
 
 ```bash
-# Navigate to the frontend directory
 cd frontend
-
-# Install dependencies
 npm install
-
-# Setup Frontend Environment Variables
-# Create a .env file and add your VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY
-
-# Start the Vite development server
 npm run dev
 ```
 
-### 3. Production Deployment
-
-TAR includes basic scripts for deploying the application on a Linux-based Virtual Machine (like AWS EC2, GCP Compute, or OCI Instances) running `pm2`.
+**Deployment (PM2):**
 
 ```bash
-# Run the deployment helper (which pulls branch updates, installs deps, and starts pm2 with uvicorn configurations)
-./deploy.sh
+# Start backend using PM2
+pm2 start "python src/main.py" --name "ai-researcher-backend"
+
+# Save PM2 process list so it restarts on boot
+pm2 save
+pm2 startup
 ```
 
----
-
-## 🗺️ Future Roadmap
-
-- **Vector Database Integration (RAG)**: Implementing Pinecone to provide persistent, long-term memory mapping of past research sessions, turning TAR into a personalized second brain.
-- **Dockerization & Kubernetes**: Dockerizing the application and writing Helm charts to scale the processing worker nodes in a Kubernetes cluster horizontally.
-- **Advanced User Authentication**: Integrating more robust enterprise single-sign on (SSO) and granular role-based access.
-
-*I am actively working on the project, and will change the README.md file as the project progresses.*
+*"I am activly working on this project and will be updating it as I go."*

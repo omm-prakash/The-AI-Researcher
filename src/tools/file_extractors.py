@@ -169,7 +169,7 @@ def image_extractor_tool(attachment_path: str, user_query: str) -> str:
     if extracted is None:
         error_msg = str(last_error) if last_error else "All vision models failed"
         return f"Image analysis failed: {error_msg}"
-    print(extracted)
+    # print(extracted)
     return (
         "[Image Attachment Analysis]\n"
         "The following analysis was performed on the attached image "
